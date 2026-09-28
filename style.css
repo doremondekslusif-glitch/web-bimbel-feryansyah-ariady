@@ -32,3 +32,43 @@ footer{text-align:center;color:#9aa1b1;font-size:12px;padding:25px 20px 35px;bor
 @media(max-width:560px){.brand strong{font-size:13px}.brand span{font-size:10px}.teacher-btn{display:none}}
 
 .teacher-tabs{display:flex;gap:8px;border-bottom:1px solid var(--line);margin:-2px 0 20px;padding-bottom:12px}.teacher-tab{border:1px solid var(--line);background:white;border-radius:11px;padding:10px 14px;cursor:pointer;font-weight:800;color:var(--muted)}.teacher-tab.active{background:#f3f2ff;border-color:#c9c8f6;color:var(--primary)}.question-manager-head h3{margin:5px 0}.question-manager-head p{color:var(--muted);margin:4px 0 18px}.question-form{background:var(--soft);border:1px solid var(--line);border-radius:16px;padding:18px;display:grid;gap:14px}.question-form label{display:grid;gap:7px;font-size:13px;font-weight:800}.question-form .student-input{max-width:none;background:white}.mcq-fields{display:grid;grid-template-columns:1fr 1fr;gap:12px}.question-list{margin-top:24px}.question-list>h3{margin-bottom:10px}.question-admin-item{display:flex;justify-content:space-between;align-items:center;gap:15px;padding:14px;border:1px solid var(--line);border-radius:14px;margin-bottom:9px;background:white}.question-admin-item strong{display:block;margin:5px 0}.question-admin-item small{display:block;color:var(--muted)}.question-type-badge{display:inline-block;background:#f3f2ff;color:var(--primary);border-radius:999px;padding:4px 8px;font-size:10px;font-weight:900}.pending-score{display:block;color:#a26b12!important;font-size:10px!important}.essay-input{max-width:none!important;resize:vertical;min-height:130px}@media(max-width:560px){.teacher-tabs{overflow:auto}.teacher-tab{white-space:nowrap}.mcq-fields{grid-template-columns:1fr}.question-admin-item{align-items:flex-start;flex-direction:column}.question-admin-item .danger-btn{width:100%}}
+
+/* ===== Materi & Ulangan dashboard ===== */
+.content-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.content-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;box-shadow:0 10px 30px rgba(23,32,51,.05);display:flex;flex-direction:column;align-items:flex-start}
+.content-card-icon{width:52px;height:52px;border-radius:15px;background:#f3f2ff;display:grid;place-items:center;font-size:25px;margin-bottom:12px}
+.content-badge{display:inline-block;background:#f3f2ff;color:var(--primary);border-radius:999px;padding:5px 9px;font-size:10px;font-weight:900}
+.content-card h3{margin:10px 0 4px;font-size:19px}
+.content-card p{color:var(--muted);font-size:13px;margin:0 0 13px;min-height:39px}
+.content-status{font-size:12px;color:var(--muted);margin-top:auto;padding:9px 0}
+.content-start{margin-top:8px}
+.admin-intro{margin-bottom:16px}
+.admin-intro h3{margin:5px 0 3px}
+.admin-intro p{color:var(--muted);margin:0}
+.teacher-create-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;background:var(--soft);border:1px solid var(--line);border-radius:16px;padding:16px;margin-bottom:22px}
+.teacher-create-grid .teacher-filters{display:grid;grid-template-columns:1fr 1fr;gap:10px;grid-column:1/-1}
+.teacher-create-grid .student-input{max-width:none;background:#fff}
+.teacher-create-grid .primary-btn{width:100%}
+.admin-list>h3{margin:0 0 12px}
+.admin-card{background:#fff;border:1px solid var(--line);border-radius:17px;padding:17px;margin-bottom:12px}
+.admin-card-head{display:flex;justify-content:space-between;align-items:flex-start;gap:15px}
+.admin-card-head h3{margin:8px 0 3px}
+.admin-card-head p{color:var(--muted);font-size:13px;margin:0}
+.admin-card-meta{display:flex;gap:8px;align-items:center;color:var(--muted);font-size:12px;margin:14px 0}
+.admin-card-meta b{color:var(--primary)}
+.inline-manager{margin-top:14px}
+.builder-box{background:var(--soft);border:1px solid var(--line);border-radius:14px;padding:15px;display:grid;gap:10px}
+.builder-head{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.builder-head h4{margin:0}
+.builder-help{font-size:12px;color:var(--muted);margin:0}
+.builder-box>.student-input{max-width:none;background:#fff}
+.builder-answer-fields{display:grid;gap:10px}
+.builder-answer-fields .student-input{max-width:none;background:#fff}
+.question-picker{display:grid;gap:8px;max-height:360px;overflow:auto}
+.question-picker-item{display:flex;gap:10px;align-items:flex-start;background:#fff;border:1px solid var(--line);border-radius:12px;padding:11px;cursor:pointer}
+.question-picker-item input{margin-top:3px;accent-color:var(--primary)}
+.question-picker-item b{display:block;font-size:13px}
+.question-picker-item small{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+@media(max-width:820px){.content-grid{grid-template-columns:1fr 1fr}}
+@media(max-width:650px){.teacher-create-grid{grid-template-columns:1fr}.teacher-create-grid .teacher-filters{grid-template-columns:1fr}.admin-card-head{flex-direction:column}.admin-card-head .danger-btn{width:100%}}
+@media(max-width:560px){.content-grid{grid-template-columns:1fr}.teacher-create-grid{padding:12px}}
