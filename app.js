@@ -119,6 +119,11 @@ function resultHTML(r){
  $("retryQuiz").onclick=()=>{state.answers=Array(state.questions.length).fill(null);state.index=0;state.started=Date.now();clearInterval(state.timer);state.timer=setInterval(updateTimer,1000);renderQuestion()};
 }
 function historyHTML(){
+ if(!state.studentName){
+  const name=prompt("Masukkan nama siswa untuk melihat hasil:");
+  if(name===null||!name.trim())return '<div class="panel"><div class="empty-icon">🏆</div><h3>Nama siswa belum diisi</h3><p>Isi nama siswa untuk melihat hasil belajar.</p></div>';
+  state.studentName=name.trim();
+ }
  const r=getResults().filter(x=>String(x.classId)===String(state.classId)&&x.subject===state.subject&&x.studentName===state.studentName);
  if(!r.length)return `<div class="panel"><div class="empty-icon">🏆</div><h3>Belum ada hasil</h3><p>Masukkan nama siswa saat mengerjakan materi atau ulangan agar hasil dapat dilihat kembali.</p></div>`;
  return `<div class="history-panel"><div class="history-summary"><div><strong>${r.length}</strong><span>Pengerjaan</span></div><div><strong>${Math.round(r.reduce((n,x)=>n+x.score,0)/r.length)}</strong><span>Rata-rata</span></div><div><strong>${Math.max(...r.map(x=>x.score))}</strong><span>Nilai tertinggi</span></div></div><div class="history-list">${r.map(x=>`<div class="history-item"><div><strong>${esc(x.contentTitle||"Konten")}</strong><small>${x.contentType==="exam"?"Ulangan":"Materi"} · ${esc(x.date)}</small></div><div class="history-score">${x.score}<span>/100</span></div></div>`).join("")}</div></div>`;
