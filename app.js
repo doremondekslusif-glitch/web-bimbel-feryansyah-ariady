@@ -1,4 +1,12 @@
 const state={classId:null,subject:null,page:null,mode:null,questions:[],answers:[],index:0,started:0,timer:null,studentName:""};
+/*
+ * KATA KUNCI GURU
+ * Ganti teks di bawah dengan kata kunci rahasia milik Anda sendiri.
+ * Catatan: karena website ini masih statis, kata kunci di browser bukan
+ * pengamanan server. Untuk keamanan penuh, nanti kita pindahkan autentikasi
+ * guru ke backend/database.
+ */
+const TEACHER_KEY="GANTI-KATA-KUNCI-GURU";
 const classes=Array.from({length:6},(_,i)=>({id:i+1,label:"Kelas "+(i+1)}));
 const subjects=[
 {id:"matematika",name:"Matematika",icon:"🔢",desc:"Angka & logika"},
@@ -72,6 +80,9 @@ if(!rows.length)return '<div class="empty-table">Tidak ada hasil sesuai filter.<
 return `<div class="table-wrap"><table><thead><tr><th>Nama</th><th>Kelas</th><th>Mapel</th><th>Jenis</th><th>Nilai</th><th>Benar/Salah</th><th>Waktu</th><th>Tanggal</th></tr></thead><tbody>${rows.map(x=>`<tr><td><b>${esc(x.studentName)}</b></td><td>${x.classId}</td><td>${esc(x.subjectName)}</td><td>${x.mode==="latihan"?"Latihan":"Ulangan"}</td><td><strong class="score-text">${x.score}</strong></td><td>${x.correct}/${x.wrong}</td><td>${formatTime(x.duration)}</td><td>${esc(x.date)}</td></tr>`).join("")}</tbody></table></div>`;
 }
 function openTeacher(){
+const key=prompt("Masukkan kata kunci Guru:");
+if(key===null)return;
+if(key!==TEACHER_KEY){alert("Kata kunci Guru salah.");return;}
 clearInterval(state.timer);
 teacherSection.classList.remove("hidden");
 teacherSection.scrollIntoView({behavior:"smooth"});
