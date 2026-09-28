@@ -16,7 +16,7 @@
         <span>Ruang belajar pribadi</span>
       </div>
     </div>
-    <div class="status-pill"><span></span> Siap belajar</div>
+    <div class="header-actions"><button class="teacher-btn" id="teacherBtn">📊 Panel Guru</button><div class="status-pill"><span></span> Siap belajar</div></div>
   </header>
 
   <main class="container">
@@ -99,6 +99,18 @@
       <div id="workspaceContent"></div>
     </section>
   </main>
+
+  <section class="section hidden" id="teacherSection">
+      <div class="workspace-head">
+        <button class="back-btn" id="closeTeacherBtn">← Kembali</button>
+        <div>
+          <span class="section-kicker">PANEL GURU</span>
+          <h2>Rekap Hasil Belajar</h2>
+          <p>Ringkasan hasil yang tersimpan pada browser/perangkat ini.</p>
+        </div>
+      </div>
+      <div id="teacherContent"></div>
+    </section>
 
   <footer>© <span id="year"></span> Bimbel Feryansyah Ariady · Ruang belajar pribadi</footer>
   <script src="app.js"></script>
