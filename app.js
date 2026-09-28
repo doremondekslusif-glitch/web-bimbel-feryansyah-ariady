@@ -33,7 +33,7 @@ pai:[
 {question:"Berkata sesuai kenyataan disebut ...",options:["sabar","jujur","malas","marah"],answer:1,explanation:"Jujur berarti berkata sesuai kenyataan."}]};
 
 const $=id=>document.getElementById(id);
-const classGrid=$("classGrid"),subjectGrid=$("subjectGrid"),kelasSection=$("kelasSection"),mapelSection=$("mapelSection"),menuSection=$("menuSection"),workspace=$("workspace"),workspaceContent=$("workspaceContent");
+const classGrid=$("classGrid"),subjectGrid=$("subjectGrid"),kelasSection=$("kelasSection"),mapelSection=$("mapelSection"),menuSection=$("menuSection"),workspace=$("workspace"),workspaceContent=$("workspaceContent"),teacherSection=$("teacherSection"),teacherContent=$("teacherContent");
 function renderClasses(){classGrid.innerHTML=classes.map(x=>`<button class="choice-card ${state.classId===x.id?"selected":""}" data-class="${x.id}"><div class="class-number">${x.id}</div><small>Kelas ${x.id} SD</small></button>`).join("")}
 function renderSubjects(){subjectGrid.innerHTML=subjects.map(x=>`<button class="choice-card subject-card ${state.subject===x.id?"selected":""}" data-subject="${x.id}"><span class="subject-icon">${x.icon}</span><span><strong>${x.name}</strong><small>${x.desc}</small></span></button>`).join("")}
 function chooseClass(id){state.classId=id;state.subject=null;$("classLabel").textContent="Kelas "+id;$("subjectLabel").textContent="Belum dipilih";renderClasses();renderSubjects();mapelSection.classList.remove("hidden");menuSection.classList.add("hidden");workspace.classList.add("hidden");mapelSection.scrollIntoView({behavior:"smooth"})}
@@ -48,10 +48,63 @@ function renderQuestion(){const q=state.questions[state.index],total=state.quest
 function notice(msg){const n=document.createElement("div");n.className="quiz-inline-notice";n.textContent="⚠️ "+msg;document.querySelector(".quiz-actions").before(n)}
 function finishQuiz(){clearInterval(state.timer);const correct=state.answers.reduce((n,a,i)=>n+(a===state.questions[i].answer?1:0),0),total=state.questions.length,result={id:Date.now(),studentName:state.studentName,classId:state.classId,subject:state.subject,subjectName:subjects.find(s=>s.id===state.subject).name,mode:state.mode,score:Math.round(correct/total*100),correct,wrong:total-correct,total,duration:Date.now()-state.started,date:new Date().toLocaleString("id-ID")};const h=getResults();h.unshift(result);localStorage.setItem("bimbel_results_v1",JSON.stringify(h.slice(0,100)));resultHTML(result)}
 function resultHTML(r){const s=subjects.find(x=>x.id===state.subject);workspaceContent.innerHTML=`<div class="result-panel"><div class="result-hero"><div class="result-trophy">🏆</div><span class="section-kicker">HASIL SELESAI</span><h3>${esc(r.studentName)}</h3><p>${r.mode==="latihan"?"Latihan":"Ulangan"} · Kelas ${r.classId} · ${s.name}</p><div class="score-circle"><strong>${r.score}</strong><span>/ 100</span></div><b class="result-message">${r.score>=80?"Bagus sekali! 🌟":r.score>=60?"Sudah bagus. Pelajari lagi yang salah. 💪":"Pelajari pembahasannya lalu coba lagi. 📚"}</b></div><div class="result-stats"><div><strong>${r.correct}</strong><span>Benar</span></div><div><strong>${r.wrong}</strong><span>Salah</span></div><div><strong>${r.total}</strong><span>Total soal</span></div><div><strong>${formatTime(r.duration)}</strong><span>Waktu</span></div></div><div class="result-actions"><button class="primary-btn" id="reviewAnswers">Lihat Pembahasan</button><button class="secondary-btn" id="retryQuiz">Kerjakan Lagi</button></div><div id="reviewArea" class="review-area hidden"></div></div>`;$("reviewAnswers").onclick=()=>{const a=$("reviewArea");a.classList.toggle("hidden");if(!a.classList.contains("hidden"))a.innerHTML=state.questions.map((q,i)=>{const c=state.answers[i],ok=c===q.answer;return `<div class="review-item ${ok?"correct":"wrong"}"><strong>${i+1}. ${q.question}</strong><div>Jawaban siswa: <b>${c===null?"Tidak dijawab":q.options[c]}</b></div><div>Kunci jawaban: <b>${q.options[q.answer]}</b></div><small>${q.explanation}</small></div>`}).join("")};$("retryQuiz").onclick=()=>{state.answers=Array(state.questions.length).fill(null);state.index=0;state.started=Date.now();state.timer=setInterval(updateTimer,1000);renderQuestion()}}
+function teacherHTML(){
+const all=getResults();
+if(!all.length)return `<div class="panel"><div class="empty-icon">📊</div><h3>Belum ada data hasil</h3><p>Hasil siswa yang dikerjakan pada perangkat ini akan tampil di sini.</p></div>`;
+const avg=Math.round(all.reduce((n,x)=>n+x.score,0)/all.length);
+const students=new Set(all.map(x=>x.studentName)).size;
+const best=Math.max(...all.map(x=>x.score));
+return `<div class="teacher-panel">
+<div class="teacher-toolbar">
+<div class="teacher-filters">
+<select id="teacherClass"><option value="">Semua kelas</option>${classes.map(x=>`<option value="${x.id}">Kelas ${x.id}</option>`).join("")}</select>
+<select id="teacherSubject"><option value="">Semua mata pelajaran</option>${subjects.map(x=>`<option value="${x.id}">${x.name}</option>`).join("")}</select>
+</div>
+<div class="teacher-actions"><button class="secondary-btn" id="exportResults">⬇ Export CSV</button><button class="danger-btn" id="clearResults">Hapus Data</button></div>
+</div>
+<div class="teacher-stats"><div><strong id="teacherCount">${all.length}</strong><span>Pengerjaan</span></div><div><strong id="teacherStudents">${students}</strong><span>Siswa</span></div><div><strong id="teacherAverage">${avg}</strong><span>Rata-rata</span></div><div><strong id="teacherBest">${best}</strong><span>Nilai tertinggi</span></div></div>
+<div id="teacherTableWrap">${teacherTable(all)}</div>
+<div class="notice">💾 Data saat ini tersimpan di browser. Dashboard ini siap dipakai sebagai tampilan guru; untuk melihat hasil dari perangkat siswa lain, tahap berikutnya adalah menghubungkannya ke database bersama.</div>
+</div>`;
+}
+function teacherTable(rows){
+if(!rows.length)return '<div class="empty-table">Tidak ada hasil sesuai filter.</div>';
+return `<div class="table-wrap"><table><thead><tr><th>Nama</th><th>Kelas</th><th>Mapel</th><th>Jenis</th><th>Nilai</th><th>Benar/Salah</th><th>Waktu</th><th>Tanggal</th></tr></thead><tbody>${rows.map(x=>`<tr><td><b>${esc(x.studentName)}</b></td><td>${x.classId}</td><td>${esc(x.subjectName)}</td><td>${x.mode==="latihan"?"Latihan":"Ulangan"}</td><td><strong class="score-text">${x.score}</strong></td><td>${x.correct}/${x.wrong}</td><td>${formatTime(x.duration)}</td><td>${esc(x.date)}</td></tr>`).join("")}</tbody></table></div>`;
+}
+function openTeacher(){
+clearInterval(state.timer);
+teacherSection.classList.remove("hidden");
+teacherSection.scrollIntoView({behavior:"smooth"});
+teacherContent.innerHTML=teacherHTML();
+const refresh=()=>{
+const classId=$( "teacherClass").value,subject=$( "teacherSubject").value;
+const rows=getResults().filter(x=>(!classId||String(x.classId)===classId)&&(!subject||x.subject===subject));
+$( "teacherTableWrap").innerHTML=teacherTable(rows);
+$( "teacherCount").textContent=rows.length;
+$( "teacherStudents").textContent=new Set(rows.map(x=>x.studentName)).size;
+$( "teacherAverage").textContent=rows.length?Math.round(rows.reduce((n,x)=>n+x.score,0)/rows.length):0;
+$( "teacherBest").textContent=rows.length?Math.max(...rows.map(x=>x.score)):0;
+};
+$( "teacherClass").onchange=refresh;$( "teacherSubject").onchange=refresh;
+$( "exportResults").onclick=exportResultsCSV;
+$( "clearResults").onclick=()=>{if(confirm("Hapus semua hasil yang tersimpan di browser ini?")){localStorage.removeItem("bimbel_results_v1");openTeacher()}};
+}
+function exportResultsCSV(){
+const rows=getResults();
+if(!rows.length){alert("Belum ada data untuk diekspor.");return}
+const header=["Nama","Kelas","Mata Pelajaran","Jenis","Nilai","Benar","Salah","Total","Durasi","Tanggal"];
+const body=rows.map(x=>[x.studentName,x.classId,x.subjectName,x.mode==="latihan"?"Latihan":"Ulangan",x.score,x.correct,x.wrong,x.total,formatTime(x.duration),x.date]);
+const csv=[header,...body].map(row=>row.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+const blob=new Blob(["\\uFEFF"+csv],{type:"text/csv;charset=utf-8"});
+const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="hasil-belajar-bimbel.csv";a.click();URL.revokeObjectURL(a.href);
+}
+
 function getResults(){return JSON.parse(localStorage.getItem("bimbel_results_v1")||"[]")}
 function historyHTML(){const r=getResults().filter(x=>x.classId===state.classId&&x.subject===state.subject);if(!r.length)return `<div class="panel"><div class="empty-icon">🏆</div><h3>Belum ada hasil</h3><p>Hasil pengerjaan akan muncul di sini.</p><div class="notice">💾 Saat ini hasil disimpan di browser/perangkat ini. Agar guru dapat melihat hasil siswa dari perangkat lain, tahap berikutnya membutuhkan database/backend bersama.</div></div>`;const avg=Math.round(r.reduce((n,x)=>n+x.score,0)/r.length);return `<div class="history-panel"><div class="history-summary"><div><strong>${r.length}</strong><span>Pengerjaan</span></div><div><strong>${avg}</strong><span>Rata-rata</span></div><div><strong>${Math.max(...r.map(x=>x.score))}</strong><span>Nilai tertinggi</span></div></div><div class="history-list">${r.map(x=>`<div class="history-item"><div><strong>${esc(x.studentName)}</strong><small>${x.mode==="latihan"?"Latihan":"Ulangan"} · ${x.date}</small></div><div class="history-score">${x.score}<span>/100</span></div></div>`).join("")}</div></div>`}
 function esc(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 $("startBtn").onclick=()=>kelasSection.scrollIntoView({behavior:"smooth"});
+$("teacherBtn").onclick=openTeacher;
+$("closeTeacherBtn").onclick=()=>{teacherSection.classList.add("hidden");kelasSection.scrollIntoView({behavior:"smooth"})};
 classGrid.onclick=e=>{const b=e.target.closest("[data-class]");if(b)chooseClass(Number(b.dataset.class))};
 subjectGrid.onclick=e=>{const b=e.target.closest("[data-subject]");if(b)chooseSubject(b.dataset.subject)};
 document.querySelectorAll(".learning-card").forEach(b=>b.onclick=()=>openPage(b.dataset.page));
