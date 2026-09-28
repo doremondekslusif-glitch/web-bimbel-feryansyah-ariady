@@ -6,7 +6,7 @@ const state={classId:null,subject:null,page:null,mode:null,questions:[],answers:
  * pengamanan server. Untuk keamanan penuh, nanti kita pindahkan autentikasi
  * guru ke backend/database.
  */
-const TEACHER_KEY="GANTI-KATA-KUNCI-GURU";
+const TEACHER_KEY="Kusanagikun18";
 const classes=Array.from({length:6},(_,i)=>({id:i+1,label:"Kelas "+(i+1)}));
 const subjects=[
 {id:"matematika",name:"Matematika",icon:"🔢",desc:"Angka & logika"},
