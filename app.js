@@ -31,7 +31,7 @@ function closeInputModal(value=null){
  modal.classList.add("hidden");modal.setAttribute("aria-hidden","true");document.body.classList.remove("modal-open");
  if(modalResolver){const resolve=modalResolver;modalResolver=null;resolve(value)}
 }
-function openInputModal({mode="student",value=""}={}){
+function openInputModal({mode="student",value="",validate=null}={}){
  const modal=$("appModal"),input=$("modalInput"),title=$("modalTitle"),desc=$("modalDescription"),label=$("modalLabel"),icon=$("modalIcon"),kicker=$("modalKicker"),submit=$("modalSubmit"),eye=$("modalEye"),error=$("modalError");
  if(!modal||!input)return Promise.resolve(null);
  const teacher=mode==="teacher";
@@ -49,7 +49,7 @@ function openInputModal({mode="student",value=""}={}){
  eye.textContent="👁";
  eye.setAttribute("aria-label","Tampilkan password");
  error.classList.add("hidden");error.textContent="";input.classList.remove("input-error");
- modal.classList.remove("hidden");modal.setAttribute("aria-hidden","false");document.body.classList.add("modal-open");
+ modal.classList.remove("hidden");modal.setAttribute("aria-hidden","false");document.body.classList.add("modal-open");modal.dataset.validateMode=validate?"custom":"none";modal._inputValidator=validate;
  requestAnimationFrame(()=>{input.focus();input.select()});
  return new Promise(resolve=>{modalResolver=resolve});
 }
@@ -268,14 +268,8 @@ function exportResultsCSV(){
  const blob=new Blob([lines.join("\n")],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="hasil-belajar-bimbel.csv";a.click();URL.revokeObjectURL(a.href);
 }
 async function openTeacher(){
- const key=await openInputModal({mode:"teacher"});
+ const key=await openInputModal({mode:"teacher",validate:value=>value===TEACHER_KEY?null:"Kata kunci guru salah. Silakan coba lagi."});
  if(key===null)return;
- if(key!==TEACHER_KEY){
-  const error=$("modalError"),input=$("modalInput");
-  if(error){error.textContent="Kata kunci guru salah. Silakan coba lagi.";error.classList.remove("hidden")}
-  if(input){input.classList.add("input-error");input.focus()}
-  return;
- }
  clearInterval(state.timer);setDashboard("teacher");document.querySelector("main").classList.add("hidden");teacherSection.classList.remove("hidden");teacherSection.scrollIntoView({behavior:"smooth"});teacherContent.innerHTML=teacherHTML();bindTeacherUI();
 }
 $("startBtn").onclick=()=>kelasSection.scrollIntoView({behavior:"smooth"});
@@ -287,7 +281,7 @@ $("modalEye").onclick=()=>{
  const input=$("modalInput"),eye=$("modalEye");if(!input)return;
  const visible=input.type==="text";input.type=visible?"password":"text";eye.textContent=visible?"👁":"🙈";eye.setAttribute("aria-label",visible?"Tampilkan password":"Sembunyikan password");input.focus();
 };
-$("modalSubmit").onclick=()=>{const input=$("modalInput"),error=$("modalError");if(!input)return;const value=input.value.trim();if(!value){error.textContent=input.type==="password"?"Kata kunci guru wajib diisi.":"Nama siswa wajib diisi.";error.classList.remove("hidden");input.classList.add("input-error");input.focus();return}closeInputModal(value)};
+$("modalSubmit").onclick=()=>{const input=$("modalInput"),error=$("modalError"),modal=$("appModal");if(!input)return;const value=input.value.trim();if(!value){error.textContent=input.type==="password"?"Kata kunci guru wajib diisi.":"Nama siswa wajib diisi.";error.classList.remove("hidden");input.classList.add("input-error");input.focus();return}const validator=modal._inputValidator;if(validator){const message=validator(value);if(message){error.textContent=message;error.classList.remove("hidden");input.classList.add("input-error");input.focus();return}}closeInputModal(value)};
 $("modalInput").oninput=()=>{$("modalInput").classList.remove("input-error");$("modalError").classList.add("hidden")};
 $("modalInput").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("modalSubmit").click()}if(e.key==="Escape")closeInputModal(null)};
 $("closeTeacherBtn").onclick=()=>{sessionStorage.removeItem(TEACHER_SESSION);teacherSection.classList.add("hidden");document.querySelector("main").classList.remove("hidden");setDashboard("student");kelasSection.scrollIntoView({behavior:"smooth"})};
