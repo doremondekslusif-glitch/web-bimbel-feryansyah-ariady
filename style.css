@@ -92,3 +92,125 @@ body.teacher-mode footer{display:none}
 .teacher-tab.active{background:#172033;color:#fff}
 .teacher-mode .teacher-create-grid,.teacher-mode .admin-card,.teacher-mode .teacher-stats,.teacher-mode .teacher-toolbar,.teacher-mode .panel,.teacher-mode .history-panel,.teacher-mode .table-wrap{box-shadow:0 8px 25px rgba(23,32,51,.05)}
 @media(max-width:650px){.teacher-tabs{overflow:auto}.teacher-tab{white-space:nowrap}}
+
+
+/* ===== Mobile-first refinement ===== */
+html,body{overflow-x:hidden}
+button,.primary-btn,.secondary-btn,.back-btn,.teacher-btn,.learning-card,.choice-card,.answer-option{touch-action:manipulation}
+@media(max-width:560px){
+  .topbar{height:64px;padding:0 12px}
+  .brand{min-width:0;gap:9px}
+  .brand-icon{width:38px;height:38px;border-radius:11px;font-size:19px;flex:0 0 auto}
+  .brand strong{font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .brand span{font-size:9px}
+  .container{padding:18px 12px 42px}
+  .hero{border-radius:20px;padding:25px 18px 20px;box-shadow:0 12px 30px rgba(23,32,51,.07)}
+  .eyebrow{font-size:10px}
+  h1{font-size:32px;line-height:1.08;letter-spacing:-.035em;margin:9px 0 14px}
+  .hero p{font-size:14px;line-height:1.55;margin-bottom:20px}
+  .primary-btn{min-height:46px;padding:12px 16px}
+  .hero-art{min-height:118px;margin-top:2px}
+  .book{font-size:76px}
+  .hero:after{width:220px;height:220px;right:-95px;top:-75px}
+  .floating-card{padding:7px 9px;border-radius:12px;font-size:19px;gap:6px}
+  .floating-card small{font-size:10px}
+  .card-one{left:1%;top:18%}
+  .card-two{right:1%;bottom:16%}
+  .section{margin-top:30px}
+  .section-heading{margin-bottom:12px;gap:6px}
+  .section-heading h2,.workspace-head h2{font-size:22px}
+  .selection-label{font-size:11px;padding:6px 9px}
+  .choice-grid{gap:8px}
+  .choice-card{border-radius:13px;padding:15px 8px;min-height:76px}
+  .class-number{font-size:22px}
+  .choice-card small{font-size:10px}
+  .subject-card{min-height:76px;padding:11px;gap:9px}
+  .subject-icon{font-size:23px}
+  .subject-card strong{font-size:12px;line-height:1.25}
+  .subject-card small{font-size:10px}
+  .learning-grid{grid-template-columns:1fr;gap:10px}
+  .learning-card{min-height:68px;border-radius:15px;padding:12px 13px;gap:11px}
+  .learning-icon{width:43px;height:43px;border-radius:12px;font-size:21px}
+  .learning-card strong{font-size:14px}
+  .learning-card small{font-size:11px}
+  .learning-card b{font-size:18px}
+  .workspace-head{gap:10px;margin-bottom:15px}
+  .back-btn{min-height:42px;padding:9px 12px}
+  .workspace-head p{font-size:13px;line-height:1.45}
+  .panel,.quiz-panel,.result-panel,.history-panel{border-radius:16px;padding:16px}
+  .quiz-launch-panel{max-width:none}
+  .quiz-icon{font-size:36px}
+  .quiz-info-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .info-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .info-box,.quiz-info-grid>div{padding:11px}
+  .info-box strong{font-size:17px}
+  .info-box span{font-size:10px}
+  .field-label{font-size:12px;margin:17px 0 6px}
+  .student-input{min-height:44px;padding:11px 12px;font-size:14px}
+  .quiz-panel{padding:15px}
+  .quiz-topline{font-size:11px}
+  .progress-track{height:7px;margin:9px 0 22px}
+  .question-number{font-size:10px}
+  .question-text{font-size:20px;line-height:1.35;margin:7px 0 18px}
+  .options-list{gap:8px}
+  .answer-option{min-height:52px;padding:10px 11px;border-radius:12px;gap:10px;font-size:14px}
+  .option-letter{width:30px;height:30px;border-radius:8px}
+  .quiz-actions,.result-actions{gap:8px;margin-top:18px}
+  .quiz-actions button,.result-actions button{min-height:44px}
+  .result-hero h3{font-size:21px}
+  .score-circle{width:112px;height:112px;padding-top:32px}
+  .score-circle strong{font-size:34px}
+  .result-stats,.history-summary{gap:8px}
+  .result-stats>div,.history-summary>div{padding:11px 7px}
+  .result-stats strong,.history-summary strong{font-size:19px}
+  .result-stats span,.history-summary span{font-size:10px}
+  .history-item{align-items:flex-start;padding:12px 0}
+  .history-item strong{font-size:13px}
+  .history-score{font-size:20px;white-space:nowrap}
+  .review-item{padding:12px}
+  .review-item div{font-size:12px}
+  .teacher-dashboard{padding:16px 12px 30px}
+  .teacher-dashboard .workspace-head{border-radius:18px;padding:18px 16px}
+  .teacher-dashboard .workspace-head h2{font-size:22px}
+  .teacher-dashboard .workspace-head p{font-size:12px}
+  .teacher-panel{margin-top:12px;padding:12px}
+  .teacher-tabs{margin:-2px -4px 14px;padding:5px;gap:5px}
+  .teacher-tab{padding:10px 12px;font-size:12px}
+  .teacher-toolbar{gap:9px}
+  .teacher-filters{display:grid;grid-template-columns:1fr;gap:8px}
+  .teacher-filters select{min-height:42px;width:100%}
+  .teacher-actions{gap:7px}
+  .teacher-actions button{min-height:42px}
+  .teacher-stats{gap:8px}
+  .teacher-stats>div{padding:11px 7px}
+  .teacher-stats strong{font-size:20px}
+  .teacher-stats span{font-size:10px}
+  .teacher-create-grid{gap:8px;padding:11px}
+  .teacher-create-grid .teacher-filters{gap:8px}
+  .admin-card{padding:13px;border-radius:15px}
+  .admin-card-head h3{font-size:16px}
+  .admin-card-head p{font-size:12px}
+  .admin-card-meta{align-items:flex-start;flex-wrap:wrap;font-size:11px;margin:11px 0}
+  .builder-box{padding:12px}
+  .builder-head h4{font-size:14px}
+  .question-picker{max-height:300px}
+  .question-picker-item{padding:10px}
+  .question-picker-item b{font-size:12px}
+  .question-picker-item small{font-size:10px}
+  .content-grid{grid-template-columns:1fr}
+  .content-card{padding:16px}
+  footer{font-size:10px;padding:20px 14px 28px}
+}
+@media(max-width:360px){
+  .brand strong{font-size:11px}
+  .container{padding-left:10px;padding-right:10px}
+  .hero{padding-left:15px;padding-right:15px}
+  h1{font-size:29px}
+  .choice-grid{gap:6px}
+  .choice-card{padding-left:5px;padding-right:5px}
+  .subject-card{padding:9px;gap:7px}
+  .subject-icon{font-size:20px}
+  .subject-card strong{font-size:11px}
+  .learning-card{padding:11px}
+  .quiz-info-grid,.info-grid{grid-template-columns:1fr 1fr}
+}
