@@ -136,20 +136,26 @@ function studentLinkSubjects(link){
  return ids.length?subjects.filter(s=>ids.includes(s.id)):subjects;
 }
 function studentLinkURL(token){const u=new URL(location.href);u.search="";u.searchParams.set("s",token);return u.toString()}
+async function accessAPI(body){
+ const res=await fetch(window.BIMBEL_SUPABASE_CONFIG.url+"/functions/v1/bimbel-access",{method:"POST",headers:{"Content-Type":"application/json","apikey":window.BIMBEL_SUPABASE_CONFIG.publishableKey},body:JSON.stringify(body)});
+ let data={};try{data=await res.json()}catch{}
+ if(!res.ok)throw new Error(data.error||"Permintaan gagal");
+ return data;
+}
 async function loadStudentLink(){
- if(!state.studentLinkToken||!window.bimbelSupabase)return false;
+ if(!state.studentLinkToken)return false;
  try{
-  const {data,error}=await window.bimbelSupabase.from("bimbel_student_links").select("*").eq("token",state.studentLinkToken).eq("active",true).maybeSingle();
-  if(error)throw error;
-  if(!data){state.studentLinkToken="";return false}
-  state.studentLink=data;
-  state.studentName=data.student_name;
-  state.classId=Number(data.class_id);
+  const {link}=await accessAPI({action:"get_student_link",token:state.studentLinkToken});
+  if(!link){state.studentLinkToken="";return false}
+  state.studentLink=link;
+  state.studentName=link.student_name;
+  state.classId=Number(link.class_id);
   state.educationLevel=state.classId<=6?"sd":state.classId<=9?"smp":"sma";
   localStorage.setItem("bimbel_student_name",state.studentName);
   return true;
  }catch(error){
   console.error("Student link load error:",error);
+  state.studentLinkToken="";
   return false;
  }
 }
@@ -326,9 +332,10 @@ async function createStudentLink(){
  if(!name||!classId){alert("Isi nama siswa dan pilih kelas.");return}
  const token=uid("s").replace(/_/g,"")+Math.random().toString(36).slice(2,12);
  const row={id:uid("student"),token,student_name:name,class_id:classId,subject_ids:subject?[subject]:[],active:true};
- const {error}=await window.bimbelSupabase.from("bimbel_student_links").insert(row);
- if(error){console.error(error);alert("Link siswa gagal dibuat. Periksa koneksi database.");return}
- const links=readStudentLinksLocal();links.unshift(row);saveStudentLinksLocal(links);
+ try{
+  const {link}=await accessAPI({action:"create_student_link",teacherKey:state.teacherKey,row});
+  const links=readStudentLinksLocal();links.unshift(link||row);saveStudentLinksLocal(links);
+ }catch(error){console.error(error);alert("Link siswa gagal dibuat. Periksa koneksi database.");return}
  const url=studentLinkURL(token);
  $("studentLinkCreated").classList.remove("hidden");
  $("studentLinkCreated").innerHTML=`<strong>Link siap dibagikan:</strong><div class="student-link-result-row"><input class="student-input" readonly value="${esc(url)}"><button class="primary-btn" id="copyCreatedStudentLink">Salin Link</button></div><small>Simpan link ini dan kirim hanya kepada siswa yang dituju.</small>`;
@@ -339,9 +346,11 @@ async function revokeStudentLink(id){
  const links=readStudentLinksLocal(),item=links.find(x=>x.id===id);
  if(!item)return;
  const next=!item.active;
- const {error}=await window.bimbelSupabase.from("bimbel_student_links").update({active:next}).eq("id",id);
- if(error){alert("Gagal mengubah status link.");return}
- item.active=next;saveStudentLinksLocal(links);teacherContent.innerHTML=teacherHTML();bindTeacherUI();openTeacherTab("students");
+ try{
+  const {link}=await accessAPI({action:"set_student_link_active",teacherKey:state.teacherKey,id,active:next});
+  item.active=link?.active??next;saveStudentLinksLocal(links);
+ }catch(error){alert("Gagal mengubah status link.");return}
+ teacherContent.innerHTML=teacherHTML();bindTeacherUI();openTeacherTab("students");
 }
 function teacherScopeHTML(idPrefix=""){
  return `<div class="teacher-filters"><select id="${idPrefix}Class"><option value="">Pilih kelas</option>${classes.map(x=>`<option value="${x.id}">Kelas ${x.id}</option>`).join("")}</select><select id="${idPrefix}Subject"><option value="">Pilih mata pelajaran</option>${subjects.map(x=>`<option value="${x.id}">${x.name}</option>`).join("")}</select></div>`;
@@ -443,19 +452,19 @@ function exportResultsCSV(){
  rows.forEach(x=>lines.push([x.studentName,x.classId,x.subjectName,x.contentTitle||"",x.contentType==="exam"?"Ulangan":"Materi",x.score,x.correct,x.wrong,x.total,formatTime(x.duration),x.date].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")));
  const blob=new Blob([lines.join("\n")],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="hasil-belajar-bimbel.csv";a.click();URL.revokeObjectURL(a.href);
 }
-async function refreshStudentLinksFromCloud(){
- if(!window.bimbelSupabase)return;
+async function refreshStudentLinksFromCloud(teacherKey){
  try{
-  const {data,error}=await window.bimbelSupabase.from("bimbel_student_links").select("*").order("created_at",{ascending:false});
-  if(error)throw error;
-  if(Array.isArray(data))saveStudentLinksLocal(data);
- }catch(error){console.error("Student links refresh error:",error)}
+  const {links}=await accessAPI({action:"list_student_links",teacherKey});
+  if(Array.isArray(links))saveStudentLinksLocal(links);
+  return true;
+ }catch(error){console.error("Student links refresh error:",error);return false}
 }
 async function openTeacher(){
  await ensureCloudReady();
- await refreshStudentLinksFromCloud();
- const key=await openInputModal({mode:"teacher",validate:value=>value===TEACHER_KEY?null:"Kata kunci guru salah. Silakan coba lagi."});
+ const key=await openInputModal({mode:"teacher",validate:async value=>{try{await accessAPI({action:"list_student_links",teacherKey:value});return null}catch(error){return "Kata kunci guru salah. Silakan coba lagi."}}});
  if(key===null)return;
+ await refreshStudentLinksFromCloud(key);
+ state.teacherKey=key;
  clearInterval(state.timer);setDashboard("teacher");document.querySelector("main").classList.add("hidden");teacherSection.classList.remove("hidden");teacherSection.scrollIntoView({behavior:"smooth"});teacherContent.innerHTML=teacherHTML();bindTeacherUI();
 }
 $("startBtn").onclick=()=>kelasSection.scrollIntoView({behavior:"smooth"});
