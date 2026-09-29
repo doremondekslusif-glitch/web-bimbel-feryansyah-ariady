@@ -335,7 +335,7 @@ async function createStudentLink(){
  try{
   const {link}=await accessAPI({action:"create_student_link",teacherKey:state.teacherKey,row});
   const links=readStudentLinksLocal();links.unshift(link||row);saveStudentLinksLocal(links);
- }catch(error){console.error(error);alert("Link siswa gagal dibuat. Periksa koneksi database.");return}
+ }catch(error){console.error("Create student link error:",error);alert(error?.message||"Link siswa gagal dibuat. Periksa koneksi database.");return}
  const url=studentLinkURL(token);
  $("studentLinkCreated").classList.remove("hidden");
  $("studentLinkCreated").innerHTML=`<strong>Link siap dibagikan:</strong><div class="student-link-result-row"><input class="student-input" readonly value="${esc(url)}"><button class="primary-btn" id="copyCreatedStudentLink">Salin Link</button></div><small>Simpan link ini dan kirim hanya kepada siswa yang dituju.</small>`;
@@ -476,7 +476,7 @@ $("modalEye").onclick=()=>{
  const input=$("modalInput"),eye=$("modalEye");if(!input)return;
  const visible=input.type==="text";input.type=visible?"password":"text";eye.textContent=visible?"👁":"🙈";eye.setAttribute("aria-label",visible?"Tampilkan password":"Sembunyikan password");input.focus();
 };
-$("modalSubmit").onclick=()=>{const input=$("modalInput"),error=$("modalError"),modal=$("appModal");if(!input)return;const value=input.value.trim();if(!value){error.textContent=input.type==="password"?"Kata kunci guru wajib diisi.":"Nama siswa wajib diisi.";error.classList.remove("hidden");input.classList.add("input-error");input.focus();return}const validator=modal._inputValidator;if(validator){const message=validator(value);if(message){error.textContent=message;error.classList.remove("hidden");input.classList.add("input-error");input.focus();return}}closeInputModal(value)};
+$("modalSubmit").onclick=async()=>{const input=$("modalInput"),error=$("modalError"),modal=$("appModal"),submit=$("modalSubmit");if(!input)return;const value=input.value.trim();if(!value){error.textContent=input.type==="password"?"Kata kunci guru wajib diisi.":"Nama siswa wajib diisi.";error.classList.remove("hidden");input.classList.add("input-error");input.focus();return}const validator=modal._inputValidator;if(validator){submit.disabled=true;submit.classList.add("loading");try{const message=await validator(value);if(message){error.textContent=message;error.classList.remove("hidden");input.classList.add("input-error");input.focus();return}}catch(errorValue){error.textContent=errorValue?.message||"Validasi gagal. Coba lagi.";error.classList.remove("hidden");input.classList.add("input-error");input.focus();return}finally{submit.disabled=false;submit.classList.remove("loading")}}closeInputModal(value)};
 $("modalInput").oninput=()=>{$("modalInput").classList.remove("input-error");$("modalError").classList.add("hidden")};
 $("modalInput").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("modalSubmit").click()}if(e.key==="Escape")closeInputModal(null)};
 $("closeTeacherBtn").onclick=()=>{sessionStorage.removeItem(TEACHER_SESSION);teacherSection.classList.add("hidden");document.querySelector("main").classList.remove("hidden");setDashboard("student");kelasSection.scrollIntoView({behavior:"smooth"})};
