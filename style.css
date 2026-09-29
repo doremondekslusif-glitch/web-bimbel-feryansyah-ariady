@@ -296,3 +296,21 @@ body.modal-open{overflow:hidden}
 .class-level-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:12px}
 @media(max-width:820px){.education-level-grid{grid-template-columns:1fr 1fr}.education-level-card:last-child{grid-column:1/-1}.class-level-grid{grid-template-columns:repeat(3,1fr)}}
 @media(max-width:560px){.education-level-grid{grid-template-columns:1fr;gap:10px}.education-level-card,.education-level-card:last-child{grid-column:auto;min-height:125px;padding:17px;border-radius:17px}.education-level-icon{width:48px;height:48px;border-radius:14px;font-size:24px;margin-bottom:12px}.education-level-card strong{font-size:20px}.education-level-card b{padding-top:12px}.class-level-panel{padding:13px;border-radius:17px}.class-level-intro{align-items:flex-start;flex-direction:column;gap:8px;margin:14px 0 12px}.class-level-intro h3{font-size:18px}.class-level-grid{grid-template-columns:repeat(3,1fr);gap:8px}}
+
+/* ===== Student private links ===== */
+.student-link-create{grid-template-columns:1fr 1fr}
+.student-link-create #studentLinkSubject{grid-column:1/-1}
+.student-link-result{margin:0 0 20px;padding:15px 16px;border:1px solid #cfd0f4;background:#f7f7ff;border-radius:15px;color:var(--ink)}
+.student-link-result.hidden{display:none}
+.student-link-result strong{display:block;margin-bottom:9px}
+.student-link-result small{display:block;color:var(--muted);margin-top:8px}
+.student-link-result-row,.student-link-url{display:flex;gap:8px;align-items:center}
+.student-link-result-row .student-input,.student-link-url .student-input{max-width:none;flex:1;background:#fff}
+.student-link-card .danger-btn{white-space:nowrap}
+.student-link-url{margin-top:14px}
+@media(max-width:650px){
+ .student-link-create{grid-template-columns:1fr}
+ .student-link-create #studentLinkSubject{grid-column:auto}
+ .student-link-result-row,.student-link-url{flex-direction:column;align-items:stretch}
+ .student-link-result-row button,.student-link-url button{width:100%}
+}
