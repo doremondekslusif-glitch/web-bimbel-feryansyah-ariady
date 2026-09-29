@@ -1,4 +1,4 @@
-const state={classId:null,subject:null,page:null,mode:null,contentId:null,contentTitle:"",questions:[],answers:[],index:0,started:0,timer:null,studentName:localStorage.getItem("bimbel_student_name")||""};
+const state={classId:null,educationLevel:null,subject:null,page:null,mode:null,contentId:null,contentTitle:"",questions:[],answers:[],index:0,started:0,timer:null,studentName:localStorage.getItem("bimbel_student_name")||""};
 const TEACHER_KEY="Kusanagikun18";
 const TEACHER_SESSION="bimbel_teacher_session_v1";
 const KEYS={questions:"bimbel_question_bank_v2",materials:"bimbel_materials_v1",exams:"bimbel_exams_v1",results:"bimbel_results_v1"};
@@ -62,15 +62,34 @@ const subjectName=id=>subjects.find(s=>s.id===id)?.name||id;
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 function normalizeAnswer(v){return String(v??"").trim().toLowerCase().replace(/\s+/g," ")}
 function renderClasses(){
- const groups=[
-  {title:"SD",subtitle:"Sekolah Dasar",classes:classes.filter(x=>x.id>=1&&x.id<=6)},
-  {title:"SMP / MTs",subtitle:"Sekolah Menengah Pertama / Madrasah Tsanawiyah",classes:classes.filter(x=>x.id>=7&&x.id<=9)},
-  {title:"SMA / SMK",subtitle:"Sekolah Menengah Atas / Kejuruan",classes:classes.filter(x=>x.id>=10&&x.id<=12)}
+ const levels=[
+  {id:"sd",title:"SD",subtitle:"Sekolah Dasar",range:"Kelas 1–6",icon:"🏫"},
+  {id:"smp",title:"SMP / MTs",subtitle:"Sekolah Menengah Pertama / Madrasah Tsanawiyah",range:"Kelas 7–9",icon:"🏫"},
+  {id:"sma",title:"SMA / SMK",subtitle:"Sekolah Menengah Atas / Kejuruan",range:"Kelas 10–12",icon:"🎓"}
  ];
- classGrid.innerHTML=groups.map(g=>`<div class="class-group"><div class="class-group-heading"><div><strong>${g.title}</strong><small>${g.subtitle}</small></div><span>${g.classes.length} tingkat</span></div><div class="class-group-grid">${g.classes.map(x=>`<button class="choice-card ${state.classId===x.id?"selected":""}" data-class="${x.id}"><div class="class-number">${x.id}</div><small>Kelas ${x.id}</small></button>`).join("")}</div></div>`).join("");
+ if(!state.educationLevel){
+  classGrid.innerHTML=`<div class="education-level-grid">${levels.map(l=>`<button class="education-level-card" data-level="${l.id}"><span class="education-level-icon">${l.icon}</span><strong>${l.title}</strong><small>${l.subtitle}</small><b>${l.range} →</b></button>`).join("")}</div>`;
+  return;
+ }
+ const config=levels.find(l=>l.id===state.educationLevel);
+ const range=config.id==="sd"?[1,6]:config.id==="smp"?[7,9]:[10,12];
+ const levelClasses=classes.filter(x=>x.id>=range[0]&&x.id<=range[1]);
+ classGrid.innerHTML=`<div class="class-level-panel"><button class="back-class-btn" data-level-back="1">← Kembali ke pilihan jenjang</button><div class="class-level-intro"><div><span class="section-kicker">${config.title}</span><h3>Pilih Kelas ${config.title}</h3><p>${config.subtitle} · ${config.range}</p></div><span class="selection-label">${config.range}</span></div><div class="class-level-grid">${levelClasses.map(x=>`<button class="choice-card ${state.classId===x.id?"selected":""}" data-class="${x.id}"><div class="class-number">${x.id}</div><small>Kelas ${x.id}</small></button>`).join("")}</div></div>`;
+}
+function chooseEducationLevel(level){
+ state.educationLevel=level;
+ state.classId=null;
+ state.subject=null;
+ $("classLabel").textContent="Belum dipilih";
+ $("subjectLabel").textContent="Belum dipilih";
+ mapelSection.classList.add("hidden");
+ menuSection.classList.add("hidden");
+ workspace.classList.add("hidden");
+ renderClasses();
+ kelasSection.scrollIntoView({behavior:"smooth"});
 }
 function renderSubjects(){subjectGrid.innerHTML=subjects.map(x=>`<button class="choice-card subject-card ${state.subject===x.id?"selected":""}" data-subject="${x.id}"><span class="subject-icon">${x.icon}</span><span><strong>${x.name}</strong><small>${x.desc}</small></span></button>`).join("")}
-function chooseClass(id){state.classId=id;state.subject=null;$("classLabel").textContent="Kelas "+id;$("subjectLabel").textContent="Belum dipilih";renderClasses();renderSubjects();mapelSection.classList.remove("hidden");menuSection.classList.add("hidden");workspace.classList.add("hidden");mapelSection.scrollIntoView({behavior:"smooth"})}
+function chooseClass(id){state.classId=id;state.subject=null;const level=id<=6?"SD":id<=9?"SMP / MTs":"SMA / SMK";$("classLabel").textContent=level+" · Kelas "+id;$("subjectLabel").textContent="Belum dipilih";renderClasses();renderSubjects();mapelSection.classList.remove("hidden");menuSection.classList.add("hidden");workspace.classList.add("hidden");mapelSection.scrollIntoView({behavior:"smooth"})}
 function chooseSubject(id){state.subject=id;const s=subjects.find(x=>x.id===id);$("subjectLabel").textContent=s.name;renderSubjects();menuSection.classList.remove("hidden");workspace.classList.add("hidden");menuSection.scrollIntoView({behavior:"smooth"})}
 
 function migrateOldQuestions(){
@@ -292,7 +311,7 @@ $("modalSubmit").onclick=()=>{const input=$("modalInput"),error=$("modalError"),
 $("modalInput").oninput=()=>{$("modalInput").classList.remove("input-error");$("modalError").classList.add("hidden")};
 $("modalInput").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("modalSubmit").click()}if(e.key==="Escape")closeInputModal(null)};
 $("closeTeacherBtn").onclick=()=>{sessionStorage.removeItem(TEACHER_SESSION);teacherSection.classList.add("hidden");document.querySelector("main").classList.remove("hidden");setDashboard("student");kelasSection.scrollIntoView({behavior:"smooth"})};
-classGrid.onclick=e=>{const b=e.target.closest("[data-class]");if(b)chooseClass(Number(b.dataset.class))};
+classGrid.onclick=e=>{const level=e.target.closest("[data-level]");if(level){chooseEducationLevel(level.dataset.level);return}const back=e.target.closest("[data-level-back]");if(back){state.educationLevel=null;state.classId=null;state.subject=null;$("classLabel").textContent="Belum dipilih";$("subjectLabel").textContent="Belum dipilih";mapelSection.classList.add("hidden");menuSection.classList.add("hidden");workspace.classList.add("hidden");renderClasses();return}const b=e.target.closest("[data-class]");if(b)chooseClass(Number(b.dataset.class))};
 subjectGrid.onclick=e=>{const b=e.target.closest("[data-subject]");if(b)chooseSubject(b.dataset.subject)};
 document.querySelectorAll(".learning-card").forEach(b=>b.onclick=()=>openPage(b.dataset.page));
 workspaceContent.onclick=e=>{const start=e.target.closest(".content-start");if(start){launchContent(start.dataset.contentType,start.dataset.contentId)}};
