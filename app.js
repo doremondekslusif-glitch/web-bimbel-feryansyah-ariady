@@ -80,7 +80,10 @@ function chooseEducationLevel(level){
  state.educationLevel=level;
  state.classId=null;
  state.subject=null;
- $("classLabel").textContent="Belum dipilih";
+ const levelTitle=level==="sd"?"SD":level==="smp"?"SMP / MTs":"SMA / SMK";
+ $("classStepKicker").textContent="LANGKAH 1 · JENJANG";
+ $("classHeading").textContent="Pilih Kelas "+levelTitle;
+ $("classLabel").textContent=levelTitle;
  $("subjectLabel").textContent="Belum dipilih";
  mapelSection.classList.add("hidden");
  menuSection.classList.add("hidden");
@@ -311,7 +314,7 @@ $("modalSubmit").onclick=()=>{const input=$("modalInput"),error=$("modalError"),
 $("modalInput").oninput=()=>{$("modalInput").classList.remove("input-error");$("modalError").classList.add("hidden")};
 $("modalInput").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("modalSubmit").click()}if(e.key==="Escape")closeInputModal(null)};
 $("closeTeacherBtn").onclick=()=>{sessionStorage.removeItem(TEACHER_SESSION);teacherSection.classList.add("hidden");document.querySelector("main").classList.remove("hidden");setDashboard("student");kelasSection.scrollIntoView({behavior:"smooth"})};
-classGrid.onclick=e=>{const level=e.target.closest("[data-level]");if(level){chooseEducationLevel(level.dataset.level);return}const back=e.target.closest("[data-level-back]");if(back){state.educationLevel=null;state.classId=null;state.subject=null;$("classLabel").textContent="Belum dipilih";$("subjectLabel").textContent="Belum dipilih";mapelSection.classList.add("hidden");menuSection.classList.add("hidden");workspace.classList.add("hidden");renderClasses();return}const b=e.target.closest("[data-class]");if(b)chooseClass(Number(b.dataset.class))};
+classGrid.onclick=e=>{const level=e.target.closest("[data-level]");if(level){chooseEducationLevel(level.dataset.level);return}const back=e.target.closest("[data-level-back]");if(back){state.educationLevel=null;state.classId=null;state.subject=null;$("classStepKicker").textContent="LANGKAH 1";$("classHeading").textContent="Pilih jenjang";$("classLabel").textContent="Belum dipilih";$("subjectLabel").textContent="Belum dipilih";mapelSection.classList.add("hidden");menuSection.classList.add("hidden");workspace.classList.add("hidden");renderClasses();return}const b=e.target.closest("[data-class]");if(b)chooseClass(Number(b.dataset.class))};
 subjectGrid.onclick=e=>{const b=e.target.closest("[data-subject]");if(b)chooseSubject(b.dataset.subject)};
 document.querySelectorAll(".learning-card").forEach(b=>b.onclick=()=>openPage(b.dataset.page));
 workspaceContent.onclick=e=>{const start=e.target.closest(".content-start");if(start){launchContent(start.dataset.contentType,start.dataset.contentId)}};
