@@ -2,7 +2,7 @@ const state={classId:null,subject:null,page:null,mode:null,contentId:null,conten
 const TEACHER_KEY="Kusanagikun18";
 const TEACHER_SESSION="bimbel_teacher_session_v1";
 const KEYS={questions:"bimbel_question_bank_v2",materials:"bimbel_materials_v1",exams:"bimbel_exams_v1",results:"bimbel_results_v1"};
-const classes=Array.from({length:6},(_,i)=>({id:i+1,label:"Kelas "+(i+1)}));
+const classes=Array.from({length:12},(_,i)=>({id:i+1,label:"Kelas "+(i+1)}));
 const subjects=[
 {id:"matematika",name:"Matematika",icon:"🔢",desc:"Angka & logika"},
 {id:"bahasa-indonesia",name:"Bahasa Indonesia",icon:"📚",desc:"Membaca & menulis"},
