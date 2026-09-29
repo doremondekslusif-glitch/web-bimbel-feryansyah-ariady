@@ -1,4 +1,4 @@
-const state={classId:null,subject:null,page:null,mode:null,contentId:null,contentTitle:"",questions:[],answers:[],index:0,started:0,timer:null,studentName:""};
+const state={classId:null,subject:null,page:null,mode:null,contentId:null,contentTitle:"",questions:[],answers:[],index:0,started:0,timer:null,studentName:localStorage.getItem("bimbel_student_name")||""};
 const TEACHER_KEY="Kusanagikun18";
 const TEACHER_SESSION="bimbel_teacher_session_v1";
 const KEYS={questions:"bimbel_question_bank_v2",materials:"bimbel_materials_v1",exams:"bimbel_exams_v1",results:"bimbel_results_v1"};
@@ -25,6 +25,35 @@ pai:[{question:"Rukun Islam yang pertama adalah ...",options:["salat","zakat","s
 
 const $=id=>document.getElementById(id);
 function setDashboard(mode){document.body.classList.toggle("teacher-mode",mode==="teacher");document.body.classList.toggle("student-mode",mode!=="teacher")}
+let modalResolver=null;
+function closeInputModal(value=null){
+ const modal=$("appModal");if(!modal)return;
+ modal.classList.add("hidden");modal.setAttribute("aria-hidden","true");document.body.classList.remove("modal-open");
+ if(modalResolver){const resolve=modalResolver;modalResolver=null;resolve(value)}
+}
+function openInputModal({mode="student",value=""}={}){
+ const modal=$("appModal"),input=$("modalInput"),title=$("modalTitle"),desc=$("modalDescription"),label=$("modalLabel"),icon=$("modalIcon"),kicker=$("modalKicker"),submit=$("modalSubmit"),eye=$("modalEye"),error=$("modalError");
+ if(!modal||!input)return Promise.resolve(null);
+ const teacher=mode==="teacher";
+ kicker.textContent=teacher?"AKSES GURU":"IDENTITAS SISWA";
+ icon.textContent=teacher?"🔐":"👤";
+ title.textContent=teacher?"Masuk ke Dashboard Guru":(value?"Konfirmasi nama siswa":"Siapa nama kamu?");
+ desc.textContent=teacher?"Masukkan kata kunci guru untuk membuka panel guru.":"Masukkan nama siswa sebelum mulai belajar.";
+ label.textContent=teacher?"Kata Kunci Guru":"Nama Siswa";
+ submit.textContent=teacher?"Masuk":"Mulai Belajar →";
+ input.type=teacher?"password":"text";
+ input.autocomplete=teacher?"current-password":"name";
+ input.placeholder=teacher?"Masukkan kata kunci guru...":"Ketik nama siswa...";
+ input.value=value||"";
+ eye.classList.toggle("hidden",!teacher);
+ eye.textContent="👁";
+ eye.setAttribute("aria-label","Tampilkan password");
+ error.classList.add("hidden");error.textContent="";input.classList.remove("input-error");
+ modal.classList.remove("hidden");modal.setAttribute("aria-hidden","false");document.body.classList.add("modal-open");
+ requestAnimationFrame(()=>{input.focus();input.select()});
+ return new Promise(resolve=>{modalResolver=resolve});
+}
+function saveStudentName(name){state.studentName=name.trim();localStorage.setItem("bimbel_student_name",state.studentName)}
 const classGrid=$("classGrid"),subjectGrid=$("subjectGrid"),kelasSection=$("kelasSection"),mapelSection=$("mapelSection"),menuSection=$("menuSection"),workspace=$("workspace"),workspaceContent=$("workspaceContent"),teacherSection=$("teacherSection"),teacherContent=$("teacherContent");
 const read=(key,fallback=[])=>{try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback))}catch{return fallback}};
 const write=(key,value)=>localStorage.setItem(key,JSON.stringify(value));
@@ -56,13 +85,13 @@ function getMaterials(classId,subject){return read(KEYS.materials).filter(x=>Str
 function getExams(classId,subject){return read(KEYS.exams).filter(x=>String(x.classId)===String(classId)&&x.subject===subject)}
 function getResults(){return read(KEYS.results)}
 
-function openPage(page){
+async function openPage(page){
  if(!state.classId||!state.subject)return;
  state.page=page;state.mode=null;clearInterval(state.timer);
  const s=subjects.find(x=>x.id===state.subject);
  const titles={materi:["Materi","Pilih topik yang dibuat guru lalu kerjakan soalnya."],ulangan:["Ulangan","Pilih ulangan yang sudah disiapkan guru."],hasil:["Hasil Belajar","Lihat hasil pengerjaanmu untuk kelas dan mata pelajaran ini."]};
  $("workspaceTitle").textContent=titles[page][0];$("workspaceSubtitle").textContent=titles[page][1];
- workspaceContent.innerHTML=page==="hasil"?historyHTML():page==="materi"?studentMaterialsHTML(s):studentExamsHTML(s);
+ workspaceContent.innerHTML=page==="hasil"?await historyHTML():page==="materi"?studentMaterialsHTML(s):studentExamsHTML(s);
  workspace.classList.remove("hidden");workspace.scrollIntoView({behavior:"smooth"});
 }
 function resultForContent(type,id){return getResults().filter(r=>r.studentName===state.studentName&&r.contentType===type&&String(r.contentId)===String(id))}
@@ -76,16 +105,16 @@ function studentExamsHTML(s){
  if(!rows.length)return `<div class="panel"><div class="empty-icon">📝</div><h3>Belum ada ulangan</h3><p>Guru belum membuat ulangan untuk ${esc(s.name)} kelas ${state.classId}.</p></div>`;
  return `<div class="content-grid">${rows.map(x=>{const rs=resultForContent("exam",x.id),last=rs[0];return `<article class="content-card exam-card"><div class="content-card-icon">📝</div><span class="content-badge">${x.questionIds.length} soal${x.duration?" · "+x.duration+" menit":""}</span><h3>${esc(x.title)}</h3><p>${esc(x.description||"Ulangan yang disiapkan guru.")}</p><div class="content-status">${last?"✓ Sudah dikerjakan · Nilai "+last.score:"○ Belum dikerjakan"}</div><button class="primary-btn content-start" data-content-type="exam" data-content-id="${x.id}">${last?"Kerjakan Lagi":"Mulai Ulangan"} →</button></article>`}).join("")}</div>`;
 }
-function launchContent(type,id){
+async function launchContent(type,id){
  const source=type==="material"?read(KEYS.materials).find(x=>String(x.id)===String(id)):read(KEYS.exams).find(x=>String(x.id)===String(id));
  if(!source)return;
  const qs=source.questionIds.map(qid=>getQuestionById(state.classId,state.subject,qid)).filter(Boolean);
  if(!qs.length){alert("Konten ini belum memiliki soal.");return}
- state.contentId=source.id;state.contentTitle=source.title;state.mode=type;state.questions=qs.map(q=>({...q}));state.answers=Array(qs.length).fill(null);state.index=0;state.started=Date.now();state.studentName=state.studentName||"";
- const name=prompt("Masukkan nama siswa:");
+ const name=await openInputModal({mode:"student",value:state.studentName});
  if(name===null)return;
- state.studentName=name.trim();
- if(!state.studentName){alert("Nama siswa wajib diisi.");return}
+ if(!name.trim()){return}
+ saveStudentName(name);
+ state.contentId=source.id;state.contentTitle=source.title;state.mode=type;state.questions=qs.map(q=>({...q}));state.answers=Array(qs.length).fill(null);state.index=0;state.started=Date.now();
  clearInterval(state.timer);state.timer=setInterval(updateTimer,1000);renderQuestion();
 }
 function renderQuestion(){
@@ -120,11 +149,11 @@ function resultHTML(r){
  $("reviewAnswers").onclick=()=>{const a=$("reviewArea");a.classList.toggle("hidden");if(!a.classList.contains("hidden"))a.innerHTML=state.questions.map((q,i)=>{const c=state.answers[i],ok=q.type==="mcq"?c===q.answer:q.type==="truefalse"?c===q.answer:q.type==="short"?normalizeAnswer(c)===normalizeAnswer(q.answer):false;const student=q.type==="mcq"?(q.options?.[c]??"Tidak dijawab"):q.type==="truefalse"?(c===null?"Tidak dijawab":c?"Benar":"Salah"):String(c??"Tidak dijawab");const key=q.type==="mcq"?(q.options?.[q.answer]??""):q.type==="truefalse"?(q.answer?"Benar":"Salah"):String(q.answer??"");return `<div class="review-item ${ok?"correct":"wrong"}"><strong>${i+1}. ${esc(q.question)}</strong><div>Jawaban siswa: <b>${esc(student)}</b></div><div>Kunci jawaban: <b>${esc(key)}</b></div><small>${esc(q.explanation||"")}</small></div>`}).join("")};
  $("retryQuiz").onclick=()=>{state.answers=Array(state.questions.length).fill(null);state.index=0;state.started=Date.now();clearInterval(state.timer);state.timer=setInterval(updateTimer,1000);renderQuestion()};
 }
-function historyHTML(){
+async function historyHTML(){
  if(!state.studentName){
-  const name=prompt("Masukkan nama siswa untuk melihat hasil:");
+  const name=await openInputModal({mode:"student"});
   if(name===null||!name.trim())return '<div class="panel"><div class="empty-icon">🏆</div><h3>Nama siswa belum diisi</h3><p>Isi nama siswa untuk melihat hasil belajar.</p></div>';
-  state.studentName=name.trim();
+  saveStudentName(name);
  }
  const r=getResults().filter(x=>String(x.classId)===String(state.classId)&&x.subject===state.subject&&x.studentName===state.studentName);
  if(!r.length)return `<div class="panel"><div class="empty-icon">🏆</div><h3>Belum ada hasil</h3><p>Masukkan nama siswa saat mengerjakan materi atau ulangan agar hasil dapat dilihat kembali.</p></div>`;
@@ -238,12 +267,29 @@ function exportResultsCSV(){
  rows.forEach(x=>lines.push([x.studentName,x.classId,x.subjectName,x.contentTitle||"",x.contentType==="exam"?"Ulangan":"Materi",x.score,x.correct,x.wrong,x.total,formatTime(x.duration),x.date].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")));
  const blob=new Blob([lines.join("\n")],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="hasil-belajar-bimbel.csv";a.click();URL.revokeObjectURL(a.href);
 }
-function openTeacher(){
- const key=prompt("Masukkan kata kunci Guru:");if(key===null)return;if(key!==TEACHER_KEY){alert("Kata kunci Guru salah.");return}
+async function openTeacher(){
+ const key=await openInputModal({mode:"teacher"});
+ if(key===null)return;
+ if(key!==TEACHER_KEY){
+  const error=$("modalError"),input=$("modalInput");
+  if(error){error.textContent="Kata kunci guru salah. Silakan coba lagi.";error.classList.remove("hidden")}
+  if(input){input.classList.add("input-error");input.focus()}
+  return;
+ }
  clearInterval(state.timer);setDashboard("teacher");document.querySelector("main").classList.add("hidden");teacherSection.classList.remove("hidden");teacherSection.scrollIntoView({behavior:"smooth"});teacherContent.innerHTML=teacherHTML();bindTeacherUI();
 }
 $("startBtn").onclick=()=>kelasSection.scrollIntoView({behavior:"smooth"});
 $("teacherBtn").onclick=openTeacher;
+$("modalClose").onclick=()=>closeInputModal(null);
+$("modalCancel").onclick=()=>closeInputModal(null);
+$("modalBackdrop").onclick=()=>closeInputModal(null);
+$("modalEye").onclick=()=>{
+ const input=$("modalInput"),eye=$("modalEye");if(!input)return;
+ const visible=input.type==="text";input.type=visible?"password":"text";eye.textContent=visible?"👁":"🙈";eye.setAttribute("aria-label",visible?"Tampilkan password":"Sembunyikan password");input.focus();
+};
+$("modalSubmit").onclick=()=>{const input=$("modalInput"),error=$("modalError");if(!input)return;const value=input.value.trim();if(!value){error.textContent=input.type==="password"?"Kata kunci guru wajib diisi.":"Nama siswa wajib diisi.";error.classList.remove("hidden");input.classList.add("input-error");input.focus();return}closeInputModal(value)};
+$("modalInput").oninput=()=>{$("modalInput").classList.remove("input-error");$("modalError").classList.add("hidden")};
+$("modalInput").onkeydown=e=>{if(e.key==="Enter"){e.preventDefault();$("modalSubmit").click()}if(e.key==="Escape")closeInputModal(null)};
 $("closeTeacherBtn").onclick=()=>{sessionStorage.removeItem(TEACHER_SESSION);teacherSection.classList.add("hidden");document.querySelector("main").classList.remove("hidden");setDashboard("student");kelasSection.scrollIntoView({behavior:"smooth"})};
 classGrid.onclick=e=>{const b=e.target.closest("[data-class]");if(b)chooseClass(Number(b.dataset.class))};
 subjectGrid.onclick=e=>{const b=e.target.closest("[data-subject]");if(b)chooseSubject(b.dataset.subject)};
