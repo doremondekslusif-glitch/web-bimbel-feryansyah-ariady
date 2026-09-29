@@ -1,5 +1,6 @@
 const state={classId:null,subject:null,page:null,mode:null,contentId:null,contentTitle:"",questions:[],answers:[],index:0,started:0,timer:null,studentName:""};
-const TEACHER_KEY="Kusanagikun18";\nconst TEACHER_SESSION="bimbel_teacher_session_v1";
+const TEACHER_KEY="Kusanagikun18";
+const TEACHER_SESSION="bimbel_teacher_session_v1";
 const KEYS={questions:"bimbel_question_bank_v2",materials:"bimbel_materials_v1",exams:"bimbel_exams_v1",results:"bimbel_results_v1"};
 const classes=Array.from({length:6},(_,i)=>({id:i+1,label:"Kelas "+(i+1)}));
 const subjects=[
@@ -22,7 +23,8 @@ ips:[],"bahasa-inggris":[],
 pai:[{question:"Rukun Islam yang pertama adalah ...",options:["salat","zakat","syahadat","puasa"],answer:2,explanation:"Rukun Islam pertama adalah syahadat."},{question:"Salat wajib sehari semalam berjumlah ... waktu.",options:["3","4","5","6"],answer:2,explanation:"Salat wajib terdiri dari lima waktu."},{question:"Kitab suci umat Islam adalah ...",options:["Al-Qur'an","Taurat","Zabur","Injil"],answer:0,explanation:"Kitab suci umat Islam adalah Al-Qur'an."},{question:"Sebelum salat, seorang muslim biasanya melakukan ...",options:["tidur","wudu","makan","bermain"],answer:1,explanation:"Wudu dilakukan sebagai persiapan sebelum salat."},{question:"Berkata sesuai kenyataan disebut ...",options:["sabar","jujur","malas","marah"],answer:1,explanation:"Jujur berarti berkata sesuai kenyataan."}],
 "pendidikan-pancasila":[],"seni-budaya":[],pjok:[],informatika:[]};
 
-const $=id=>document.getElementById(id);\nfunction setDashboard(mode){document.body.classList.toggle("teacher-mode",mode==="teacher");document.body.classList.toggle("student-mode",mode!=="teacher")}
+const $=id=>document.getElementById(id);
+function setDashboard(mode){document.body.classList.toggle("teacher-mode",mode==="teacher");document.body.classList.toggle("student-mode",mode!=="teacher")}
 const classGrid=$("classGrid"),subjectGrid=$("subjectGrid"),kelasSection=$("kelasSection"),mapelSection=$("mapelSection"),menuSection=$("menuSection"),workspace=$("workspace"),workspaceContent=$("workspaceContent"),teacherSection=$("teacherSection"),teacherContent=$("teacherContent");
 const read=(key,fallback=[])=>{try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback))}catch{return fallback}};
 const write=(key,value)=>localStorage.setItem(key,JSON.stringify(value));
