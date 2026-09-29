@@ -135,9 +135,7 @@ function studentLinkSubjects(link){
  const ids=Array.isArray(link?.subject_ids)?link.subject_ids:[];
  return ids.length?subjects.filter(s=>ids.includes(s.id)):subjects;
 }
-function studentLinkURL(token){
- return new URL(location.href).toString().replace(/[?&]s=[^&]*/,"").replace(/[?&]$/,"")+(location.search?"&":"?")+"s="+encodeURIComponent(token);
-}
+function studentLinkURL(token){const u=new URL(location.href);u.search="";u.searchParams.set("s",token);return u.toString()}
 async function loadStudentLink(){
  if(!state.studentLinkToken||!window.bimbelSupabase)return false;
  try{
@@ -191,7 +189,7 @@ function chooseEducationLevel(level){
 }
 function renderSubjects(){const visible=studentLinkActive()?studentLinkSubjects(state.studentLink):subjects;subjectGrid.innerHTML=visible.map(x=>`<button class="choice-card subject-card ${state.subject===x.id?"selected":""}" data-subject="${x.id}"><span class="subject-icon">${x.icon}</span><span><strong>${x.name}</strong><small>${x.desc}</small></span></button>`).join("")}
 function chooseClass(id){state.classId=id;state.subject=null;const level=id<=6?"SD":id<=9?"SMP / MTs":"SMA / SMK";$("classLabel").textContent=level+" · Kelas "+id;$("subjectLabel").textContent="Belum dipilih";renderClasses();renderSubjects();mapelSection.classList.remove("hidden");menuSection.classList.add("hidden");workspace.classList.add("hidden");mapelSection.scrollIntoView({behavior:"smooth"})}
-function chooseSubject(id){state.subject=id;const s=subjects.find(x=>x.id===id);$("subjectLabel").textContent=s.name;renderSubjects();menuSection.classList.remove("hidden");workspace.classList.add("hidden");menuSection.scrollIntoView({behavior:"smooth"})}
+function chooseSubject(id){if(studentLinkActive()&&!studentLinkSubjects(state.studentLink).some(x=>x.id===id))return;state.subject=id;const s=subjects.find(x=>x.id===id);$("subjectLabel").textContent=s.name;renderSubjects();menuSection.classList.remove("hidden");workspace.classList.add("hidden");menuSection.scrollIntoView({behavior:"smooth"})}
 
 function migrateOldQuestions(){
  const old=read("bimbel_question_bank_v1",[]);
@@ -445,8 +443,17 @@ function exportResultsCSV(){
  rows.forEach(x=>lines.push([x.studentName,x.classId,x.subjectName,x.contentTitle||"",x.contentType==="exam"?"Ulangan":"Materi",x.score,x.correct,x.wrong,x.total,formatTime(x.duration),x.date].map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")));
  const blob=new Blob([lines.join("\n")],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="hasil-belajar-bimbel.csv";a.click();URL.revokeObjectURL(a.href);
 }
+async function refreshStudentLinksFromCloud(){
+ if(!window.bimbelSupabase)return;
+ try{
+  const {data,error}=await window.bimbelSupabase.from("bimbel_student_links").select("*").order("created_at",{ascending:false});
+  if(error)throw error;
+  if(Array.isArray(data))saveStudentLinksLocal(data);
+ }catch(error){console.error("Student links refresh error:",error)}
+}
 async function openTeacher(){
  await ensureCloudReady();
+ await refreshStudentLinksFromCloud();
  const key=await openInputModal({mode:"teacher",validate:value=>value===TEACHER_KEY?null:"Kata kunci guru salah. Silakan coba lagi."});
  if(key===null)return;
  clearInterval(state.timer);setDashboard("teacher");document.querySelector("main").classList.add("hidden");teacherSection.classList.remove("hidden");teacherSection.scrollIntoView({behavior:"smooth"});teacherContent.innerHTML=teacherHTML();bindTeacherUI();
