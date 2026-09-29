@@ -61,7 +61,14 @@ const uid=prefix=>prefix+"_"+Date.now()+"_"+Math.random().toString(36).slice(2,7
 const subjectName=id=>subjects.find(s=>s.id===id)?.name||id;
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 function normalizeAnswer(v){return String(v??"").trim().toLowerCase().replace(/\s+/g," ")}
-function renderClasses(){classGrid.innerHTML=classes.map(x=>`<button class="choice-card ${state.classId===x.id?"selected":""}" data-class="${x.id}"><div class="class-number">${x.id}</div><small>Kelas ${x.id} SD</small></button>`).join("")}
+function renderClasses(){
+ const groups=[
+  {title:"SD",subtitle:"Sekolah Dasar",classes:classes.filter(x=>x.id>=1&&x.id<=6)},
+  {title:"SMP / MTs",subtitle:"Sekolah Menengah Pertama / Madrasah Tsanawiyah",classes:classes.filter(x=>x.id>=7&&x.id<=9)},
+  {title:"SMA / SMK",subtitle:"Sekolah Menengah Atas / Kejuruan",classes:classes.filter(x=>x.id>=10&&x.id<=12)}
+ ];
+ classGrid.innerHTML=groups.map(g=>`<div class="class-group"><div class="class-group-heading"><div><strong>${g.title}</strong><small>${g.subtitle}</small></div><span>${g.classes.length} tingkat</span></div><div class="class-group-grid">${g.classes.map(x=>`<button class="choice-card ${state.classId===x.id?"selected":""}" data-class="${x.id}"><div class="class-number">${x.id}</div><small>Kelas ${x.id}</small></button>`).join("")}</div></div>`).join("");
+}
 function renderSubjects(){subjectGrid.innerHTML=subjects.map(x=>`<button class="choice-card subject-card ${state.subject===x.id?"selected":""}" data-subject="${x.id}"><span class="subject-icon">${x.icon}</span><span><strong>${x.name}</strong><small>${x.desc}</small></span></button>`).join("")}
 function chooseClass(id){state.classId=id;state.subject=null;$("classLabel").textContent="Kelas "+id;$("subjectLabel").textContent="Belum dipilih";renderClasses();renderSubjects();mapelSection.classList.remove("hidden");menuSection.classList.add("hidden");workspace.classList.add("hidden");mapelSection.scrollIntoView({behavior:"smooth"})}
 function chooseSubject(id){state.subject=id;const s=subjects.find(x=>x.id===id);$("subjectLabel").textContent=s.name;renderSubjects();menuSection.classList.remove("hidden");workspace.classList.add("hidden");menuSection.scrollIntoView({behavior:"smooth"})}
