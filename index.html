@@ -107,6 +107,29 @@
       <div id="teacherContent"></div>
     </section>
 
+  <div class="app-modal hidden" id="appModal" aria-hidden="true">
+    <div class="app-modal-backdrop" id="modalBackdrop"></div>
+    <div class="app-modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+      <button class="modal-close" id="modalClose" type="button" aria-label="Tutup">×</button>
+      <div class="modal-icon" id="modalIcon">👤</div>
+      <span class="section-kicker" id="modalKicker">IDENTITAS SISWA</span>
+      <h2 id="modalTitle">Siapa nama kamu?</h2>
+      <p id="modalDescription">Masukkan nama siswa sebelum mulai belajar.</p>
+      <label class="modal-field">
+        <span id="modalLabel">Nama Siswa</span>
+        <div class="modal-input-wrap">
+          <input id="modalInput" type="text" autocomplete="name" placeholder="Ketik nama siswa..." />
+          <button class="modal-eye hidden" id="modalEye" type="button" aria-label="Tampilkan password">👁</button>
+        </div>
+      </label>
+      <div class="modal-error hidden" id="modalError"></div>
+      <div class="modal-actions">
+        <button class="secondary-btn" id="modalCancel" type="button">Batal</button>
+        <button class="primary-btn" id="modalSubmit" type="button">Lanjut →</button>
+      </div>
+    </div>
+  </div>
+
   <footer>© <span id="year"></span> Bimbel Feryansyah Ariady · Ruang belajar pribadi</footer>
   <script src="app.js"></script>
 </body>
