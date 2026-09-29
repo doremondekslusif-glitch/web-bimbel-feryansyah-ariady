@@ -2,6 +2,7 @@ const state={classId:null,educationLevel:null,subject:null,page:null,mode:null,c
 const cloudCache={questions:[],materials:[],exams:[],results:[]};
 let cloudReady=false;
 let cloudLoading=true;
+let cloudLoadPromise=null;
 const cloudTypeByKey={
   bimbel_question_bank_v2:"questions",
   bimbel_materials_v1:"materials",
@@ -127,6 +128,7 @@ async function loadCloudData(){
 function readLocalArray(key,fallback=[]){
  try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback))}catch{return fallback}
 }
+function ensureCloudReady(){return cloudLoadPromise||(cloudLoadPromise=loadCloudData())}
 const uid=prefix=>prefix+"_"+Date.now()+"_"+Math.random().toString(36).slice(2,7);
 const subjectName=id=>subjects.find(s=>s.id===id)?.name||id;
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
@@ -185,6 +187,7 @@ function getExams(classId,subject){return read(KEYS.exams).filter(x=>String(x.cl
 function getResults(){return read(KEYS.results)}
 
 async function openPage(page){
+ await ensureCloudReady();
  if(!state.classId||!state.subject)return;
  state.page=page;state.mode=null;clearInterval(state.timer);
  const s=subjects.find(x=>x.id===state.subject);
@@ -205,6 +208,7 @@ function studentExamsHTML(s){
  return `<div class="content-grid">${rows.map(x=>{const rs=resultForContent("exam",x.id),last=rs[0];return `<article class="content-card exam-card"><div class="content-card-icon">📝</div><span class="content-badge">${x.questionIds.length} soal${x.duration?" · "+x.duration+" menit":""}</span><h3>${esc(x.title)}</h3><p>${esc(x.description||"Ulangan yang disiapkan guru.")}</p><div class="content-status">${last?"✓ Sudah dikerjakan · Nilai "+last.score:"○ Belum dikerjakan"}</div><button class="primary-btn content-start" data-content-type="exam" data-content-id="${x.id}">${last?"Kerjakan Lagi":"Mulai Ulangan"} →</button></article>`}).join("")}</div>`;
 }
 async function launchContent(type,id){
+ await ensureCloudReady();
  const source=type==="material"?read(KEYS.materials).find(x=>String(x.id)===String(id)):read(KEYS.exams).find(x=>String(x.id)===String(id));
  if(!source)return;
  const qs=source.questionIds.map(qid=>getQuestionById(state.classId,state.subject,qid)).filter(Boolean);
@@ -367,6 +371,7 @@ function exportResultsCSV(){
  const blob=new Blob([lines.join("\n")],{type:"text/csv;charset=utf-8"}),a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download="hasil-belajar-bimbel.csv";a.click();URL.revokeObjectURL(a.href);
 }
 async function openTeacher(){
+ await ensureCloudReady();
  const key=await openInputModal({mode:"teacher",validate:value=>value===TEACHER_KEY?null:"Kata kunci guru salah. Silakan coba lagi."});
  if(key===null)return;
  clearInterval(state.timer);setDashboard("teacher");document.querySelector("main").classList.add("hidden");teacherSection.classList.remove("hidden");teacherSection.scrollIntoView({behavior:"smooth"});teacherContent.innerHTML=teacherHTML();bindTeacherUI();
@@ -389,4 +394,4 @@ subjectGrid.onclick=e=>{const b=e.target.closest("[data-subject]");if(b)chooseSu
 document.querySelectorAll(".learning-card").forEach(b=>b.onclick=()=>openPage(b.dataset.page));
 workspaceContent.onclick=e=>{const start=e.target.closest(".content-start");if(start){launchContent(start.dataset.contentType,start.dataset.contentId)}};
 $("backBtn").onclick=()=>{clearInterval(state.timer);workspace.classList.add("hidden");menuSection.scrollIntoView({behavior:"smooth"})};
-$("year").textContent=new Date().getFullYear();setDashboard("student");renderClasses();renderSubjects();loadCloudData().then(()=>{if(state.page)openPage(state.page)});
+$("year").textContent=new Date().getFullYear();setDashboard("student");renderClasses();renderSubjects();ensureCloudReady().then(()=>{if(state.page)openPage(state.page);if(!teacherSection.classList.contains("hidden")){teacherContent.innerHTML=teacherHTML();bindTeacherUI()}});
