@@ -240,7 +240,7 @@ function exportResultsCSV(){
 }
 function openTeacher(){
  const key=prompt("Masukkan kata kunci Guru:");if(key===null)return;if(key!==TEACHER_KEY){alert("Kata kunci Guru salah.");return}
- clearInterval(state.timer);teacherSection.classList.remove("hidden");teacherSection.scrollIntoView({behavior:"smooth"});teacherContent.innerHTML=teacherHTML();bindTeacherUI();
+ clearInterval(state.timer);setDashboard("teacher");document.querySelector("main").classList.add("hidden");teacherSection.classList.remove("hidden");teacherSection.scrollIntoView({behavior:"smooth"});teacherContent.innerHTML=teacherHTML();bindTeacherUI();
 }
 $("startBtn").onclick=()=>kelasSection.scrollIntoView({behavior:"smooth"});
 $("teacherBtn").onclick=openTeacher;
