@@ -1,4 +1,4 @@
-const state={classId:null,educationLevel:null,subject:null,page:null,mode:null,contentId:null,contentTitle:"",questions:[],answers:[],index:0,started:0,timer:null,studentName:localStorage.getItem("bimbel_student_name")||""};
+const state={classId:null,educationLevel:null,subject:null,page:null,mode:null,contentId:null,contentTitle:"",questions:[],answers:[],index:0,started:0,timer:null,studentName:localStorage.getItem("bimbel_student_name")||"",studentLinkToken:new URLSearchParams(location.search).get("s")||"",studentLink:null};
 const cloudCache={questions:[],materials:[],exams:[],results:[]};
 let cloudReady=false;
 let cloudLoading=true;
@@ -131,6 +131,32 @@ function readLocalArray(key,fallback=[]){
 function ensureCloudReady(){return cloudLoadPromise||(cloudLoadPromise=loadCloudData())}
 const uid=prefix=>prefix+"_"+Date.now()+"_"+Math.random().toString(36).slice(2,7);
 const subjectName=id=>subjects.find(s=>s.id===id)?.name||id;
+function studentLinkSubjects(link){
+ const ids=Array.isArray(link?.subject_ids)?link.subject_ids:[];
+ return ids.length?subjects.filter(s=>ids.includes(s.id)):subjects;
+}
+function studentLinkURL(token){
+ return new URL(location.href).toString().replace(/[?&]s=[^&]*/,"").replace(/[?&]$/,"")+(location.search?"&":"?")+"s="+encodeURIComponent(token);
+}
+async function loadStudentLink(){
+ if(!state.studentLinkToken||!window.bimbelSupabase)return false;
+ try{
+  const {data,error}=await window.bimbelSupabase.from("bimbel_student_links").select("*").eq("token",state.studentLinkToken).eq("active",true).maybeSingle();
+  if(error)throw error;
+  if(!data){state.studentLinkToken="";return false}
+  state.studentLink=data;
+  state.studentName=data.student_name;
+  state.classId=Number(data.class_id);
+  state.educationLevel=state.classId<=6?"sd":state.classId<=9?"smp":"sma";
+  localStorage.setItem("bimbel_student_name",state.studentName);
+  return true;
+ }catch(error){
+  console.error("Student link load error:",error);
+  return false;
+ }
+}
+function studentLinkActive(){return !!state.studentLink&&!!state.studentLinkToken}
+
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
 function normalizeAnswer(v){return String(v??"").trim().toLowerCase().replace(/\s+/g," ")}
 function renderClasses(){
@@ -163,7 +189,7 @@ function chooseEducationLevel(level){
  renderClasses();
  kelasSection.scrollIntoView({behavior:"smooth"});
 }
-function renderSubjects(){subjectGrid.innerHTML=subjects.map(x=>`<button class="choice-card subject-card ${state.subject===x.id?"selected":""}" data-subject="${x.id}"><span class="subject-icon">${x.icon}</span><span><strong>${x.name}</strong><small>${x.desc}</small></span></button>`).join("")}
+function renderSubjects(){const visible=studentLinkActive()?studentLinkSubjects(state.studentLink):subjects;subjectGrid.innerHTML=visible.map(x=>`<button class="choice-card subject-card ${state.subject===x.id?"selected":""}" data-subject="${x.id}"><span class="subject-icon">${x.icon}</span><span><strong>${x.name}</strong><small>${x.desc}</small></span></button>`).join("")}
 function chooseClass(id){state.classId=id;state.subject=null;const level=id<=6?"SD":id<=9?"SMP / MTs":"SMA / SMK";$("classLabel").textContent=level+" · Kelas "+id;$("subjectLabel").textContent="Belum dipilih";renderClasses();renderSubjects();mapelSection.classList.remove("hidden");menuSection.classList.add("hidden");workspace.classList.add("hidden");mapelSection.scrollIntoView({behavior:"smooth"})}
 function chooseSubject(id){state.subject=id;const s=subjects.find(x=>x.id===id);$("subjectLabel").textContent=s.name;renderSubjects();menuSection.classList.remove("hidden");workspace.classList.add("hidden");menuSection.scrollIntoView({behavior:"smooth"})}
 
@@ -213,10 +239,10 @@ async function launchContent(type,id){
  if(!source)return;
  const qs=source.questionIds.map(qid=>getQuestionById(state.classId,state.subject,qid)).filter(Boolean);
  if(!qs.length){alert("Konten ini belum memiliki soal.");return}
- const name=await openInputModal({mode:"student",value:state.studentName});
+ const name=studentLinkActive()?state.studentName:await openInputModal({mode:"student",value:state.studentName});
  if(name===null)return;
  if(!name.trim()){return}
- saveStudentName(name);
+ if(!studentLinkActive())saveStudentName(name);
  state.contentId=source.id;state.contentTitle=source.title;state.mode=type;state.questions=qs.map(q=>({...q}));state.answers=Array(qs.length).fill(null);state.index=0;state.started=Date.now();
  clearInterval(state.timer);state.timer=setInterval(updateTimer,1000);renderQuestion();
 }
@@ -253,7 +279,7 @@ function resultHTML(r){
  $("retryQuiz").onclick=()=>{state.answers=Array(state.questions.length).fill(null);state.index=0;state.started=Date.now();clearInterval(state.timer);state.timer=setInterval(updateTimer,1000);renderQuestion()};
 }
 async function historyHTML(){
- if(!state.studentName){
+ if(!state.studentName&&!studentLinkActive()){
   const name=await openInputModal({mode:"student"});
   if(name===null||!name.trim())return '<div class="panel"><div class="empty-icon">🏆</div><h3>Nama siswa belum diisi</h3><p>Isi nama siswa untuk melihat hasil belajar.</p></div>';
   saveStudentName(name);
@@ -269,12 +295,55 @@ function teacherHTML(){
  <div class="teacher-tabs">
   <button class="teacher-tab active" data-teacher-tab="results">📊 Hasil Belajar</button>
   <button class="teacher-tab" data-teacher-tab="materials">📚 Materi</button>
-  <button class="teacher-tab" data-teacher-tab="exams">📝 Ulangan</button>
+  <button class="teacher-tab" data-teacher-tab="exams">📝 Ulangan</button>\n  <button class="teacher-tab" data-teacher-tab="students">👤 Siswa</button>
  </div>
  <div id="teacherResultsArea">${teacherResultsHTML()}</div>
  <div id="teacherMaterialsArea" class="hidden">${teacherMaterialsHTML()}</div>
- <div id="teacherExamsArea" class="hidden">${teacherExamsHTML()}</div>
+ <div id="teacherExamsArea" class="hidden">${teacherExamsHTML()}</div>\n <div id="teacherStudentsArea" class="hidden">${teacherStudentsHTML()}</div>
  </div>`;
+}
+function teacherStudentsHTML(){
+ const links=readStudentLinksLocal();
+ return `<div class="admin-intro"><span class="section-kicker">LINK SISWA</span><h3>Buat link belajar khusus siswa</h3><p>Link ini langsung mengenali nama dan kelas siswa, jadi siswa tidak perlu login atau memilih kelas lagi.</p></div>
+ <div class="teacher-create-grid student-link-create">
+  <input id="studentLinkName" class="student-input" placeholder="Nama siswa">
+  <select id="studentLinkClass" class="student-input"><option value="">Pilih kelas</option>${classes.map(x=>`<option value="${x.id}">Kelas ${x.id}</option>`).join("")}</select>
+  <select id="studentLinkSubject" class="student-input"><option value="">Semua mata pelajaran</option>${subjects.map(x=>`<option value="${x.id}">${x.name}</option>`).join("")}</select>
+  <button class="primary-btn" id="createStudentLink">＋ Buat Link Siswa</button>
+ </div>
+ <div id="studentLinkCreated" class="student-link-result hidden"></div>
+ <div class="admin-list"><h3>Link yang dibuat (${links.length})</h3>${links.length?links.map(studentLinkAdminCard).join(""):'<div class="empty-table">Belum ada link siswa.</div>'}</div>`;
+}
+function readStudentLinksLocal(){
+ try{return JSON.parse(localStorage.getItem("bimbel_student_links_v1")||"[]")}catch{return []}
+}
+function saveStudentLinksLocal(rows){localStorage.setItem("bimbel_student_links_v1",JSON.stringify(rows))}
+function studentLinkAdminCard(x){
+ const link=studentLinkURL(x.token);
+ const subjectText=Array.isArray(x.subject_ids)&&x.subject_ids.length?x.subject_ids.map(subjectName).join(", "):"Semua mata pelajaran";
+ return `<article class="admin-card student-link-card"><div class="admin-card-head"><div><span class="content-badge">Kelas ${x.class_id}</span><h3>👤 ${esc(x.student_name)}</h3><p>${esc(subjectText)}</p></div><button class="danger-btn revoke-student-link" data-id="${x.id}">${x.active?"Nonaktifkan":"Nonaktif"}</button></div><div class="student-link-url"><input class="student-input" readonly value="${esc(link)}"><button class="secondary-btn copy-student-link" data-link="${esc(link)}">Salin</button></div></article>`;
+}
+async function createStudentLink(){
+ const name=$("studentLinkName")?.value.trim(),classId=Number($("studentLinkClass")?.value),subject=$("studentLinkSubject")?.value||"";
+ if(!name||!classId){alert("Isi nama siswa dan pilih kelas.");return}
+ const token=uid("s").replace(/_/g,"")+Math.random().toString(36).slice(2,12);
+ const row={id:uid("student"),token,student_name:name,class_id:classId,subject_ids:subject?[subject]:[],active:true};
+ const {error}=await window.bimbelSupabase.from("bimbel_student_links").insert(row);
+ if(error){console.error(error);alert("Link siswa gagal dibuat. Periksa koneksi database.");return}
+ const links=readStudentLinksLocal();links.unshift(row);saveStudentLinksLocal(links);
+ const url=studentLinkURL(token);
+ $("studentLinkCreated").classList.remove("hidden");
+ $("studentLinkCreated").innerHTML=`<strong>Link siap dibagikan:</strong><div class="student-link-result-row"><input class="student-input" readonly value="${esc(url)}"><button class="primary-btn" id="copyCreatedStudentLink">Salin Link</button></div><small>Simpan link ini dan kirim hanya kepada siswa yang dituju.</small>`;
+ $("copyCreatedStudentLink").onclick=()=>navigator.clipboard?.writeText(url).then(()=>notice("Link siswa berhasil disalin."));
+ teacherContent.innerHTML=teacherHTML();bindTeacherUI();openTeacherTab("students");
+}
+async function revokeStudentLink(id){
+ const links=readStudentLinksLocal(),item=links.find(x=>x.id===id);
+ if(!item)return;
+ const next=!item.active;
+ const {error}=await window.bimbelSupabase.from("bimbel_student_links").update({active:next}).eq("id",id);
+ if(error){alert("Gagal mengubah status link.");return}
+ item.active=next;saveStudentLinksLocal(links);teacherContent.innerHTML=teacherHTML();bindTeacherUI();openTeacherTab("students");
 }
 function teacherScopeHTML(idPrefix=""){
  return `<div class="teacher-filters"><select id="${idPrefix}Class"><option value="">Pilih kelas</option>${classes.map(x=>`<option value="${x.id}">Kelas ${x.id}</option>`).join("")}</select><select id="${idPrefix}Subject"><option value="">Pilih mata pelajaran</option>${subjects.map(x=>`<option value="${x.id}">${x.name}</option>`).join("")}</select></div>`;
@@ -345,13 +414,19 @@ function openTeacherTab(tab){
  const b=document.querySelector(`[data-teacher-tab="${tab}"]`);if(b)b.click();
 }
 function bindTeacherUI(){
- document.querySelectorAll("[data-teacher-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll(".teacher-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");["results","materials","exams"].forEach(t=>{const el=$("teacher"+t.charAt(0).toUpperCase()+t.slice(1)+"Area");if(el)el.classList.toggle("hidden",t!==b.dataset.teacherTab)});if(b.dataset.teacherTab==="materials"||b.dataset.teacherTab==="exams")bindAdminCards()});
+ document.querySelectorAll("[data-teacher-tab]").forEach(b=>b.onclick=()=>{document.querySelectorAll(".teacher-tab").forEach(x=>x.classList.remove("active"));b.classList.add("active");["results","materials","exams","students"].forEach(t=>{const el=$("teacher"+t.charAt(0).toUpperCase()+t.slice(1)+"Area");if(el)el.classList.toggle("hidden",t!==b.dataset.teacherTab)});if(b.dataset.teacherTab==="materials"||b.dataset.teacherTab==="exams")bindAdminCards()});
  const refresh=()=>{const classId=$("teacherClass")?.value,subject=$("teacherSubject")?.value,type=$("teacherContentType")?.value;const rows=getResults().filter(x=>(!classId||String(x.classId)===classId)&&(!subject||x.subject===subject)&&(!type||x.contentType===type));$("teacherTableWrap").innerHTML=teacherTable(rows);$("teacherCount").textContent=rows.length;$("teacherStudents").textContent=new Set(rows.map(x=>x.studentName)).size;$("teacherAverage").textContent=rows.length?Math.round(rows.reduce((n,x)=>n+x.score,0)/rows.length):0;$("teacherBest").textContent=rows.length?Math.max(...rows.map(x=>x.score)):0};
  if($("teacherClass"))$("teacherClass").onchange=refresh;if($("teacherSubject"))$("teacherSubject").onchange=refresh;if($("teacherContentType"))$("teacherContentType").onchange=refresh;
  if($("exportResults"))$("exportResults").onclick=exportResultsCSV;
  if($("clearResults"))$("clearResults").onclick=()=>{if(confirm("Hapus semua hasil belajar?")){write(KEYS.results,[]);teacherContent.innerHTML=teacherHTML();bindTeacherUI()}};
  if($("createMaterial"))$("createMaterial").onclick=createMaterial;if($("createExam"))$("createExam").onclick=createExam;
  bindAdminCards();
+ bindStudentLinks();
+}
+function bindStudentLinks(){
+ if($("createStudentLink"))$("createStudentLink").onclick=createStudentLink;
+ document.querySelectorAll(".revoke-student-link").forEach(b=>b.onclick=()=>revokeStudentLink(b.dataset.id));
+ document.querySelectorAll(".copy-student-link").forEach(b=>b.onclick=()=>navigator.clipboard?.writeText(b.dataset.link).then(()=>alert("Link siswa berhasil disalin.")));
 }
 function bindAdminCards(){
  document.querySelectorAll(".manage-material,.manage-exam").forEach(b=>b.onclick=()=>{const id=b.dataset.id,el=$(b.classList.contains("manage-material")?"materialManager_"+id:"examManager_"+id);el.classList.toggle("hidden");if(el&&!el.classList.contains("hidden")){const type=b.classList.contains("manage-material")?"material":"exam";if(type==="material"){const sel=el.querySelector(".builder-type");if(sel){renderBuilderAnswers(el.querySelector(".builder-answer-fields"),sel.value);sel.onchange=()=>renderBuilderAnswers(el.querySelector(".builder-answer-fields"),sel.value)}}}});
