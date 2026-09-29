@@ -1,5 +1,5 @@
 const state={classId:null,subject:null,page:null,mode:null,contentId:null,contentTitle:"",questions:[],answers:[],index:0,started:0,timer:null,studentName:""};
-const TEACHER_KEY="Kusanagikun18";
+const TEACHER_KEY="Kusanagikun18";\nconst TEACHER_SESSION="bimbel_teacher_session_v1";
 const KEYS={questions:"bimbel_question_bank_v2",materials:"bimbel_materials_v1",exams:"bimbel_exams_v1",results:"bimbel_results_v1"};
 const classes=Array.from({length:6},(_,i)=>({id:i+1,label:"Kelas "+(i+1)}));
 const subjects=[
@@ -22,7 +22,7 @@ ips:[],"bahasa-inggris":[],
 pai:[{question:"Rukun Islam yang pertama adalah ...",options:["salat","zakat","syahadat","puasa"],answer:2,explanation:"Rukun Islam pertama adalah syahadat."},{question:"Salat wajib sehari semalam berjumlah ... waktu.",options:["3","4","5","6"],answer:2,explanation:"Salat wajib terdiri dari lima waktu."},{question:"Kitab suci umat Islam adalah ...",options:["Al-Qur'an","Taurat","Zabur","Injil"],answer:0,explanation:"Kitab suci umat Islam adalah Al-Qur'an."},{question:"Sebelum salat, seorang muslim biasanya melakukan ...",options:["tidur","wudu","makan","bermain"],answer:1,explanation:"Wudu dilakukan sebagai persiapan sebelum salat."},{question:"Berkata sesuai kenyataan disebut ...",options:["sabar","jujur","malas","marah"],answer:1,explanation:"Jujur berarti berkata sesuai kenyataan."}],
 "pendidikan-pancasila":[],"seni-budaya":[],pjok:[],informatika:[]};
 
-const $=id=>document.getElementById(id);
+const $=id=>document.getElementById(id);\nfunction setDashboard(mode){document.body.classList.toggle("teacher-mode",mode==="teacher");document.body.classList.toggle("student-mode",mode!=="teacher")}
 const classGrid=$("classGrid"),subjectGrid=$("subjectGrid"),kelasSection=$("kelasSection"),mapelSection=$("mapelSection"),menuSection=$("menuSection"),workspace=$("workspace"),workspaceContent=$("workspaceContent"),teacherSection=$("teacherSection"),teacherContent=$("teacherContent");
 const read=(key,fallback=[])=>{try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback))}catch{return fallback}};
 const write=(key,value)=>localStorage.setItem(key,JSON.stringify(value));
@@ -110,7 +110,7 @@ function finishQuiz(){
  let correct=0,objective=0,pendingEssay=0;
  state.questions.forEach((q,i)=>{const a=state.answers[i];if(q.type==="essay"){pendingEssay++;return}objective++;if(q.type==="mcq"&&a===q.answer)correct++;else if(q.type==="truefalse"&&a===q.answer)correct++;else if(q.type==="short"&&normalizeAnswer(a)===normalizeAnswer(q.answer))correct++});
  const score=objective?Math.round(correct/objective*100):0;
- const r={id:Date.now(),studentName:state.studentName,classId:state.classId,subject:state.subject,subjectName:subjectName(state.subject),mode:state.mode,contentType:state.mode,contentId:state.contentId,contentTitle:state.contentTitle,score,correct,wrong:objective-correct,total:state.questions.length,duration:Date.now()-state.started,pendingEssay,date:new Date().toLocaleString("id-ID")};
+ const r={id:Date.now(),studentName:state.studentName.trim(),classId:state.classId,subject:state.subject,subjectName:subjectName(state.subject),mode:state.mode,contentType:state.mode,contentId:state.contentId,contentTitle:state.contentTitle,score,correct,wrong:objective-correct,total:state.questions.length,duration:Date.now()-state.started,pendingEssay,date:new Date().toLocaleString("id-ID")};
  const h=getResults();h.unshift(r);write(KEYS.results,h.slice(0,300));resultHTML(r);
 }
 function resultHTML(r){
@@ -242,10 +242,10 @@ function openTeacher(){
 }
 $("startBtn").onclick=()=>kelasSection.scrollIntoView({behavior:"smooth"});
 $("teacherBtn").onclick=openTeacher;
-$("closeTeacherBtn").onclick=()=>{teacherSection.classList.add("hidden");kelasSection.scrollIntoView({behavior:"smooth"})};
+$("closeTeacherBtn").onclick=()=>{sessionStorage.removeItem(TEACHER_SESSION);teacherSection.classList.add("hidden");document.querySelector("main").classList.remove("hidden");setDashboard("student");kelasSection.scrollIntoView({behavior:"smooth"})};
 classGrid.onclick=e=>{const b=e.target.closest("[data-class]");if(b)chooseClass(Number(b.dataset.class))};
 subjectGrid.onclick=e=>{const b=e.target.closest("[data-subject]");if(b)chooseSubject(b.dataset.subject)};
 document.querySelectorAll(".learning-card").forEach(b=>b.onclick=()=>openPage(b.dataset.page));
 workspaceContent.onclick=e=>{const start=e.target.closest(".content-start");if(start){launchContent(start.dataset.contentType,start.dataset.contentId)}};
 $("backBtn").onclick=()=>{clearInterval(state.timer);workspace.classList.add("hidden");menuSection.scrollIntoView({behavior:"smooth"})};
-$("year").textContent=new Date().getFullYear();renderClasses();renderSubjects();
+$("year").textContent=new Date().getFullYear();setDashboard("student");renderClasses();renderSubjects();
