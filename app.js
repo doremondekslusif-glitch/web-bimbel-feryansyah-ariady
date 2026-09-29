@@ -1,4 +1,14 @@
 const state={classId:null,educationLevel:null,subject:null,page:null,mode:null,contentId:null,contentTitle:"",questions:[],answers:[],index:0,started:0,timer:null,studentName:localStorage.getItem("bimbel_student_name")||""};
+const cloudCache={questions:[],materials:[],exams:[],results:[]};
+let cloudReady=false;
+let cloudLoading=true;
+const cloudTypeByKey={
+  bimbel_question_bank_v2:"questions",
+  bimbel_materials_v1:"materials",
+  bimbel_exams_v1:"exams",
+  bimbel_results_v1:"results"
+};
+const cloudKeyByType={questions:"bimbel_question_bank_v2",materials:"bimbel_materials_v1",exams:"bimbel_exams_v1",results:"bimbel_results_v1"};
 const TEACHER_KEY="Kusanagikun18";
 const TEACHER_SESSION="bimbel_teacher_session_v1";
 const KEYS={questions:"bimbel_question_bank_v2",materials:"bimbel_materials_v1",exams:"bimbel_exams_v1",results:"bimbel_results_v1"};
@@ -55,8 +65,68 @@ function openInputModal({mode="student",value="",validate=null}={}){
 }
 function saveStudentName(name){state.studentName=name.trim();localStorage.setItem("bimbel_student_name",state.studentName)}
 const classGrid=$("classGrid"),subjectGrid=$("subjectGrid"),kelasSection=$("kelasSection"),mapelSection=$("mapelSection"),menuSection=$("menuSection"),workspace=$("workspace"),workspaceContent=$("workspaceContent"),teacherSection=$("teacherSection"),teacherContent=$("teacherContent");
-const read=(key,fallback=[])=>{try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback))}catch{return fallback}};
-const write=(key,value)=>localStorage.setItem(key,JSON.stringify(value));
+const read=(key,fallback=[])=>{
+ const type=cloudTypeByKey[key];
+ if(type&&cloudReady)return cloudCache[type]||fallback;
+ try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback))}catch{return fallback}
+};
+const write=(key,value)=>{
+ localStorage.setItem(key,JSON.stringify(value));
+ const type=cloudTypeByKey[key];
+ if(!type)return;
+ cloudCache[type]=Array.isArray(value)?value:[];
+ if(cloudReady)syncCloudArray(type,cloudCache[type]);
+};
+async function syncCloudArray(type,items){
+ if(!window.bimbelSupabase)return;
+ try{
+  const rows=(items||[]).filter(x=>x&&x.id!=null).map(x=>({record_type:type,record_id:String(x.id),payload:x,updated_at:new Date().toISOString()}));
+  const {data:existing,error:readError}=await window.bimbelSupabase.from("bimbel_records").select("record_id").eq("record_type",type);
+  if(readError)throw readError;
+  const wanted=new Set(rows.map(x=>x.record_id));
+  const stale=(existing||[]).map(x=>x.record_id).filter(id=>!wanted.has(id));
+  if(stale.length){
+   const {error}=await window.bimbelSupabase.from("bimbel_records").delete().eq("record_type",type).in("record_id",stale);
+   if(error)throw error;
+  }
+  if(rows.length){
+   const {error}=await window.bimbelSupabase.from("bimbel_records").upsert(rows,{onConflict:"record_type,record_id"});
+   if(error)throw error;
+  }
+ }catch(error){
+  console.error("Supabase sync error:",type,error);
+ }
+}
+async function loadCloudData(){
+ if(!window.bimbelSupabase){cloudLoading=false;return}
+ try{
+  const {data,error}=await window.bimbelSupabase.from("bimbel_records").select("record_type,record_id,payload");
+  if(error)throw error;
+  const grouped={questions:[],materials:[],exams:[],results:[]};
+  (data||[]).forEach(row=>{if(grouped[row.record_type]&&row.payload)grouped[row.record_type].push(row.payload)});
+  for(const type of Object.keys(grouped)){
+   const key=cloudKeyByType[type];
+   const local=readLocalArray(key);
+   if(grouped[type].length){
+    cloudCache[type]=grouped[type];
+    localStorage.setItem(key,JSON.stringify(grouped[type]));
+   }else if(local.length){
+    cloudCache[type]=local;
+   }
+  }
+  cloudReady=true;
+  for(const type of Object.keys(grouped)){
+   if(!(data||[]).some(row=>row.record_type===type)&&cloudCache[type].length)await syncCloudArray(type,cloudCache[type]);
+  }
+ }catch(error){
+  console.error("Supabase load error:",error);
+  for(const type of Object.keys(cloudKeyByType))cloudCache[type]=readLocalArray(cloudKeyByType[type]);
+  cloudReady=true;
+ }finally{cloudLoading=false}
+}
+function readLocalArray(key,fallback=[]){
+ try{return JSON.parse(localStorage.getItem(key)||JSON.stringify(fallback))}catch{return fallback}
+}
 const uid=prefix=>prefix+"_"+Date.now()+"_"+Math.random().toString(36).slice(2,7);
 const subjectName=id=>subjects.find(s=>s.id===id)?.name||id;
 function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[c]))}
@@ -319,4 +389,4 @@ subjectGrid.onclick=e=>{const b=e.target.closest("[data-subject]");if(b)chooseSu
 document.querySelectorAll(".learning-card").forEach(b=>b.onclick=()=>openPage(b.dataset.page));
 workspaceContent.onclick=e=>{const start=e.target.closest(".content-start");if(start){launchContent(start.dataset.contentType,start.dataset.contentId)}};
 $("backBtn").onclick=()=>{clearInterval(state.timer);workspace.classList.add("hidden");menuSection.scrollIntoView({behavior:"smooth"})};
-$("year").textContent=new Date().getFullYear();setDashboard("student");renderClasses();renderSubjects();
+$("year").textContent=new Date().getFullYear();setDashboard("student");renderClasses();renderSubjects();loadCloudData().then(()=>{if(state.page)openPage(state.page)});
