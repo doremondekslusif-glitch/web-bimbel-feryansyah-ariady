@@ -248,3 +248,10 @@ body.modal-open{overflow:hidden}
   .modal-actions{display:grid;grid-template-columns:1fr 1fr}
   .modal-actions button{width:100%}
 }
+
+
+/* Mobile: compact teacher access button */
+@media(max-width:560px){
+  .teacher-btn{font-size:0;width:42px;height:42px;min-width:42px;padding:0;display:grid;place-items:center;border-radius:12px;gap:0}
+  .teacher-btn::first-letter{font-size:20px}
+}
